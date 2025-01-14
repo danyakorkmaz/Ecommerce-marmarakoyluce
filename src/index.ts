@@ -3,9 +3,9 @@ import express from "express";
 import { connect } from 'mongoose';
  import mongoose from "mongoose";
 import userRoute from "./routes/userRoute";
-// import productRoute from "./routes/productRoute";
+import { seedIntitialProducts } from "./services/productService";
+import productRoute from "./routes/productRoute";
 // import cartRoute from "./routes/cartRoute";
-// import { seedIntitialProducts } from "./services/productService";
 // import cors from "cors";
 
 // dotenv.config();
@@ -23,10 +23,10 @@ mongoose
   .catch((err) => console.log("Failed to connect!", err));
 
 //seed the products to database
-// seedIntitialProducts();
+seedIntitialProducts();
 
  app.use('/user', userRoute);
-// app.use('/product', productRoute);
+app.use('/product', productRoute);
 // app.use('/cart', cartRoute);
 
 
