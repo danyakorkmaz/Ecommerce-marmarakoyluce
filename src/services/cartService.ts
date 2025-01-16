@@ -8,20 +8,19 @@ interface CreateCartForUser {
 }
 
 const createCartForUser = async ({ userID }: CreateCartForUser) => {
- 
-    const cart = await cartModel.create({ userID});
-    await cart.save();
-    return cart;
- 
+  const cart = await cartModel.create({ userID });
+  await cart.save();
+  return cart;
+
 };
+
+
 
 interface GetActiveCartForUser {
   userID: string;
 }
 
-export const getActiveCartForUser = async ({
-  userID,
-}: GetActiveCartForUser) => {
+export const getActiveCartForUser = async ({ userID, }: GetActiveCartForUser) => {
   let cart = await cartModel.findOne({ userID, status: "active" });
   if (!cart) {
     cart = await createCartForUser({ userID });
@@ -49,7 +48,7 @@ export const getActiveCartForUser = async ({
 
 // }
 
-
+/******************************************************************************************* */
 // Post end point
 interface AddItemToCart {
   productID: any;
@@ -61,19 +60,19 @@ export const addItemToCart = async ({ productID, quantity, userID }: AddItemToCa
   const cart = await getActiveCartForUser({ userID });
 
   const existsInCart = cart.items.find((p) => p.product.toString() === productID);  // Dose the item exist in the cart?
-  
+
   if (existsInCart) {
     return { data: "Item already exists in cart !", statusCode: 400 };
   }
 
   const product = await productModel.findById(productID); // fetch the product
- 
+
   if (!product) {
     return { data: "Product not found !", statusCode: 400 };
   }
   cart.items.push({
-    product: productID, 
-    unitPrice: product.price, 
+    product: productID,
+    unitPrice: product.price,
     quantity: quantity,
     discount: 0
   });
@@ -82,60 +81,79 @@ export const addItemToCart = async ({ productID, quantity, userID }: AddItemToCa
     return { data: "Low stock for item!", statusCode: 400 };
   }
 
- // Update the totalPrice for the cart
-   cart.totalPrice += product.price * quantity;
+  // Update the totalPrice for the cart
+  cart.totalPrice += product.price * quantity;
+  // Update the totalCount for the cart
+  cart.totalCount = cart.items.reduce((total, item) => total + item.quantity, 0);
 
-   cart.totalCount = cart.items.reduce((total, item) => total + item.quantity, 0);
-   
-const updatedCart = await cart.save();
+  const updatedCart = await cart.save();
 
   return { data: updatedCart, statusCode: 200 };
- };
+};
 
 
 
+/******************************************************************************************* */
 
-// //Update end point
-// interface UpdateItemInCart {
-//   productId: any;
-//   quantity: number;
-//   userId: string;
-// }
+//Update end point
+interface UpdateItemInCart {
+  productID: any;
+  quantity: number;
+  userID: string;
+}
 
-// export const updateItemInCart = async ({ productId, quantity, userId }: UpdateItemInCart) => {
-//   const cart = await getActiveCartForUser({ userId });
+export const updateItemInCart = async ({ productID, quantity, userID }: UpdateItemInCart) => {
+  const cart = await getActiveCartForUser({ userID });
 
-//   const existsInCart = cart.items.find((p) => p.product.toString() === productId);
+  const existsInCart = cart.items.find((p) => p.product.toString() === productID);
 
-//   if (!existsInCart) {
-//     return { data: "Item dosent exsit in cart", statusCode: 400 };
-//   }
+  if (!existsInCart) {
+    return { data: "Item dosent exsit in cart", statusCode: 400 };
+  }
 
-//   const product = await productModel.findById(productId);
+  const product = await productModel.findById(productID);
 
-//   if (!product) {
-//     return { data: "Product not found !", statusCode: 400 };
-//   }
+  if (!product) {
+    return { data: "Product not found !", statusCode: 400 };
+  }
 
-//   if (product.stock < quantity) {
-//     return { data: "Low stock for item!", statusCode: 400 };
-//   }
+  if (product.stockCount < quantity) {
+    return { data: "Low stock for item!", statusCode: 400 };
+  }
+
+  const otherCartItems = cart.items.filter((p) => p.product.toString() !== productID);
+
+  existsInCart.quantity = quantity;
+
+  //Calculate totalPrice and totalCount for the cart
+  let total = calculateCartTotalItems({ cartItems: otherCartItems })
+  cart.totalCount = calculateCartTotalCount({ cartItems: cart.items });
 
 
-//   const otherCartItems = cart.items.filter((p) => p.product.toString() !== productId)
-//   //Calculate total amount for the cart
-//   let total = calculateCartTotalItems({ cartItems: otherCartItems })
+  total += existsInCart.quantity * existsInCart.unitPrice;
 
-//   existsInCart.quantity = quantity;
-//   total += existsInCart.quantity * existsInCart.unitPrice;
+  cart.totalPrice = total;
 
-//   cart.totalAmount = total;
+  const updatedCart = await cart.save();
 
-//   const updatedCart = await cart.save();
+  return { data: updatedCart, statusCode: 200 };
+}
 
-//   return { data: updatedCart, statusCode: 200 };
-// }
+                  /*************************************** */
+const calculateCartTotalItems = ({ cartItems, }: { cartItems: ICartItem[]; }) => {
+  const total = cartItems.reduce((sum, product) => {
+    sum += product.quantity * product.unitPrice;
+    return sum;
+  }, 0);
 
+  return total;
+};
+
+const calculateCartTotalCount = ({ cartItems }: { cartItems: ICartItem[] }) => {
+  return cartItems.reduce((total, item) => total + item.quantity, 0);
+};
+
+/******************************************************************************************* */
 
 
 // //Delete end point
@@ -161,20 +179,6 @@ const updatedCart = await cart.save();
 //   return { data: updatedCart, statusCode: 200 };
 // }
 
-
-
-// const calculateCartTotalItems = ({
-//   cartItems,
-// }: {
-//   cartItems: ICartItem[];
-// }) => {
-//   const total = cartItems.reduce((sum, product) => {
-//     sum += product.quantity * product.unitPrice;
-//     return sum;
-//   }, 0);
-
-//   return total;
-// };
 
 
 // //Create order
