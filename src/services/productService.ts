@@ -10,7 +10,7 @@ export const seedIntitialProducts = async () => {
             { 
                 title: "Domates", 
                 image: "https://cdn.example.com/images/domates.jpg", 
-                priceTL: 20, 
+                price: 20, 
                 stockCount: 100, 
                 categoryID: "sebze", 
                 subcategoryID: "taze-sebze", 
@@ -22,7 +22,7 @@ export const seedIntitialProducts = async () => {
             { 
                 title: "Salatalık", 
                 image: "https://cdn.example.com/images/salatalik.jpg", 
-                priceTL: 15, 
+                price: 15, 
                 stockCount: 80, 
                 categoryID: "sebze", 
                 subcategoryID: "taze-sebze", 
@@ -34,7 +34,7 @@ export const seedIntitialProducts = async () => {
             { 
                 title: "Patlıcan", 
                 image: "https://cdn.example.com/images/patlican.jpg", 
-                priceTL: 25, 
+                price: 25, 
                 stockCount: 60, 
                 categoryID: "sebze", 
                 subcategoryID: "taze-sebze", 

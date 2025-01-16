@@ -3,7 +3,6 @@ import mongoose, { Schema, Document } from "mongoose";
 
 
 export interface IProduct extends Document {
-    
     createDate: string; // ISO formatında tarih
     creator: string; // Ürünü oluşturan kullanıcı ID'si veya adı
     title: string; 
@@ -13,8 +12,8 @@ export interface IProduct extends Document {
     SKU: string; // Stok kodu (Stock Keeping Unit)
     categoryID: string;
     subcategoryID: string;
-    priceTL: number; 
-    discountedPriceTL: number; 
+    price: number; 
+    discountedPrice: number; 
     measureUnit: string; // Ölçü birimi (ör. "kg", "lt", "adet")
     measureValue: number; // Ölçü birimi değeri (ör. 1, 2.5)
     stockCount: number;
@@ -36,8 +35,8 @@ const productSchema = new Schema<IProduct>({
     SKU: { type: String, required: true, unique: true },
     categoryID: { type: String, required: true },
     subcategoryID: { type: String, required: true },
-    priceTL: { type: Number, required: true },
-    discountedPriceTL: { type: Number, default: 0 },
+    price: { type: Number, required: true },
+    discountedPrice: { type: Number, default: 0 },
     measureUnit: { type: String, required: true },
     measureValue: { type: Number, required: true },
     stockCount: { type: Number, required: true, default: 0 },

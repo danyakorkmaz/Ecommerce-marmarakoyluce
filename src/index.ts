@@ -5,7 +5,7 @@ import { connect } from 'mongoose';
 import userRoute from "./routes/userRoute";
 import { seedIntitialProducts } from "./services/productService";
 import productRoute from "./routes/productRoute";
-// import cartRoute from "./routes/cartRoute";
+import cartRoute from "./routes/cartRoute"
 // import cors from "cors";
 
 // dotenv.config();
@@ -27,7 +27,7 @@ seedIntitialProducts();
 
  app.use('/user', userRoute);
 app.use('/product', productRoute);
-// app.use('/cart', cartRoute);
+app.use('/cart', cartRoute);
 
 
   app.listen(port, () => {
