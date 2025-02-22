@@ -6,7 +6,7 @@ import { ExtendRequest } from "../types/extendedRequest";
 
 
 const validateJWT = (req: ExtendRequest, res: Response, next: NextFunction) => {
-    const authorizationHeader = req.get('authorization');
+    const authorizationHeader = req.get('authorization'); //req.get yejleb ay şi mn alheader
 
     if (!authorizationHeader) {
         res.status(403).send("Authorization header was not provided");

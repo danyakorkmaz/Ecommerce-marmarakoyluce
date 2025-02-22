@@ -1,10 +1,11 @@
-// import dotenv from 'dotenv';
+// /
 import express from "express";
 import { connect } from 'mongoose';
  import mongoose from "mongoose";
 import userRoute from "./routes/userRoute";
 import { seedIntitialProducts } from "./services/productService";
 import productRoute from "./routes/productRoute";
+import categoryRoute from "./routes/categoryRoute"
 import cartRoute from "./routes/cartRoute"
 // import cors from "cors";
 
@@ -26,6 +27,7 @@ mongoose
 seedIntitialProducts();
 
  app.use('/user', userRoute);
+ app.use('/category', categoryRoute);
 app.use('/product', productRoute);
 app.use('/cart', cartRoute);
 
