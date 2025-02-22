@@ -1,4 +1,4 @@
-import mongoose, { Schema, ObjectId, Document } from "mongoose";
+import mongoose, { Schema, ObjectId, Document } from "mongoose";//mongoDB çalışmak için mongoose kullanılır
 import { IProduct } from "./productModel";
 
 //Interface TypeScript'in veri tiplerini denetlemesini sağlar. req.body ile aynı olması gerekiyor userRouterdeki gibi
@@ -29,7 +29,7 @@ const userSchema = new Schema<IUser>({
     favouriteProductIds: [],
     paraPuanID: { type: Schema.Types.ObjectId, ref: "ParaPuan", required: false },
     getEmailNotificationFlag: { type: Boolean, required: true },
-    adminFlag: { type: Boolean, required: false, default: false }
+    adminFlag: { type: Boolean, required: true , default: false }
 })
 
 
