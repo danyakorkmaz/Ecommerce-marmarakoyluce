@@ -1,12 +1,14 @@
 // /
 import express from "express";
 import { connect } from 'mongoose';
- import mongoose from "mongoose";
+import mongoose from "mongoose";
 import userRoute from "./routes/userRoute";
 import { seedIntitialProducts } from "./services/productService";
 import productRoute from "./routes/productRoute";
 import categoryRoute from "./routes/categoryRoute"
-import cartRoute from "./routes/cartRoute"
+import cartRoute from "./routes/cartRoute";
+import subcategoryRoute from "./routes/subcategoryRoute";
+
 // import cors from "cors";
 
 // dotenv.config();
@@ -30,6 +32,7 @@ seedIntitialProducts();
  app.use('/category', categoryRoute);
 app.use('/product', productRoute);
 app.use('/cart', cartRoute);
+app.use("/subcategories", subcategoryRoute);
 
 
   app.listen(port, () => {
