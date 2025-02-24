@@ -1,14 +1,14 @@
 import mongoose from "mongoose";
 import categoryModel from "../models/categoryModel";
+import subcategoryModel from "../models/subcategoryModel";
 import userModel from "../models/userModel"; // Kullanıcı modelini içe aktar
-import router from "../routes/categoryRoute";
 
 // Create Category fonksiyonu
 interface CreateCategoryParams {
   name: string;
   description?: string;
   image: string;
-  creator: string; // `creator` alanını string olarak alacağız
+  creator: string; // `creator` ID olarak string alınacak
 }
 
 export const createCategory = async ({
@@ -48,15 +48,27 @@ export const createCategory = async ({
       name,
       description,
       image,
-      creator: creatorObjectId, // Burada da ObjectId olarak kaydediyoruz
+      creator: creatorObjectId,
     });
 
     const savedCategory = await newCategory.save();
-    return { data: savedCategory, statusCode: 201 };
+
+    // **Dönen response'ta ID yerine creator'ın adını ekledik**
+    return {
+      data: {
+        name: savedCategory.name,
+        description: savedCategory.description,
+        image: savedCategory.image,
+        creatorName: `${findUser.name} ${findUser.surname}`, // Creator'ın ismi ve soyismi
+      },
+      statusCode: 201,
+    };
   } catch (error) {
+    console.error("Kategori oluşturma hatası:", error);
     return { data: "Kategori oluşturulamadı!", statusCode: 500 };
   }
 };
+
 /************************************************************************************* */
 
 //update category fonksiyon
@@ -77,10 +89,11 @@ export const updateCategory = async ({
   try {
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return {
-        data: "Geçersiz kategoriID . Lütfen Geçerli bir kategoriID yazınız! ",
+        data: "Geçersiz kategori ID. Lütfen geçerli bir kategori ID yazınız!",
         statusCode: 400,
       };
     }
+
     // Kategoriyi ID ile bul
     const category = await categoryModel.findById(categoryId);
     if (!category) {
@@ -97,54 +110,77 @@ export const updateCategory = async ({
         };
       }
     }
+
     // Güncellenecek alanları belirle
     const updateFields: Partial<UpdateCategoryParams> = {};
     if (name) updateFields.name = name;
     if (description) updateFields.description = description;
     if (image) updateFields.image = image;
 
-    // Model.findByIdAndUpdate(id, update, options)
-    // id → Güncellenecek dokümanın _id değeri.
-    //update → Güncellenecek alanları içeren nesne.
-    // options → Güncelleme sonrası dönecek veriyi ve ek ayarları belirler.
+    // Kategoriyi güncelle
     const updatedCategory = await categoryModel.findByIdAndUpdate(
       categoryId,
       { $set: updateFields }, // Sadece verilen alanları güncelle
       { new: true } // Güncellenmiş veriyi döndür
     );
 
-    return { data: updatedCategory, statusCode: 200 };
+    if (!updatedCategory) {
+      return { data: "Kategori güncellenemedi!", statusCode: 500 };
+    }
+
+    // Creator'ın bilgilerini getir
+    const creator = await userModel.findById(updatedCategory.creator).select("name surname");
+
+    return {
+      data: {
+        name: updatedCategory.name,
+        description: updatedCategory.description,
+        image: updatedCategory.image,
+        creatorName: creator ? `${creator.name} ${creator.surname}` : "Bilinmeyen Kullanıcı",
+      },
+      statusCode: 200,
+    };
   } catch (error) {
+    console.error("Kategori güncelleme hatası:", error);
     return { data: "Kategori güncellenemedi!", statusCode: 500 };
   }
 };
+
 /************************************************************************************* */
 
-//delete category fonksiyon
+//delete category fonksiyonimport mongoose from "mongoose";
+
 interface DeleteCategoryParams {
   categoryId: string;
 }
 
 export const deleteCategory = async ({ categoryId }: DeleteCategoryParams) => {
   try {
-    // Kategori ID geçerli mi kontrol et
+    // 1️⃣ **Geçerli bir ObjectId mi?**
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return { data: "Geçersiz kategori ID!", statusCode: 400 };
     }
 
-    // Veritabanında böyle bir kategori var mı kontrol et
+    // 2️⃣ **Kategori var mı?**
     const category = await categoryModel.findById(categoryId);
     if (!category) {
       return { data: "Kategori bulunamadı!", statusCode: 404 };
     }
 
-    // Kategoriyi sil
-    await categoryModel.findByIdAndDelete(categoryId);
+    // 3️⃣ **Önce alt kategorileri sil**
+    await subcategoryModel.deleteMany({ categoryId });
 
-    return { data: "Kategori başarıyla silindi!", statusCode: 200 };
+    // 4️⃣ **Sonra kategoriyi sil**
+    const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+
+    if (!deletedCategory) {
+      return { data: "Kategori silinemedi!", statusCode: 500 };
+    }
+
+    return { data: "Kategori ve ilgili alt kategoriler başarıyla silindi!", statusCode: 200 };
   } catch (error) {
     console.error("Kategori silme hatası:", error);
-    return { data: "Kategori silinirken hata oluştu!", statusCode: 500 };
+    return { data: "Kategori silinirken bir hata oluştu!", statusCode: 500 };
   }
 };
 /************************************************************************************* */
@@ -162,7 +198,6 @@ export const getAllCategories = async () => {
 
     return { data: categories, statusCode: 200 };
   } catch (error) {
-    console.error("Kategoriler getirilirken hata oluştu:", error);
     return { data: "Kategoriler getirilemedi!", statusCode: 500 };
   }
 };
