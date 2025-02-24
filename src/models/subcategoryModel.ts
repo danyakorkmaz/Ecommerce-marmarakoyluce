@@ -12,7 +12,7 @@ const subcategorySchema = new Schema <ISubcategory> ({
     name: {type:String, required: true},
     categoryId: {type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     description: {type: String},
-    brands:{type: [String]},
+    brands:{type: [String], default: []},
     creator:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
 }, 
  {

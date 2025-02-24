@@ -91,3 +91,86 @@ export const createSubcategory = async ({
 /************************************************************************************* */
 
 //update subcategory fonksiyon
+
+interface UpdateSubcategoryParams {
+  subcategoryId: string;
+  name?: string;
+  description?: string;
+  categoryId?: string;
+  brands?: string[];
+}
+
+export const updateSubcategory = async ({
+  subcategoryId,
+  name,
+  description,
+  categoryId,
+  brands,
+}: UpdateSubcategoryParams) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return {
+        data: "Geçersiz alt kategori ID. Lütfen geçerli bir ID yazınız!",
+        statusCode: 400,
+      };
+    }
+
+    const subcategory = await subcategoryModel.findById(subcategoryId);
+    if (!subcategory) {
+      return { data: "Alt kategori bulunamadı!", statusCode: 404 };
+    }
+
+    if (name && name !== subcategory.name) {
+      const existingSubcategory = await subcategoryModel.findOne({ name });
+      if (existingSubcategory) {
+        return {
+          data: "Bu isimde başka bir alt kategori zaten var!",
+          statusCode: 400,
+        };
+      }
+    }
+
+    const updateFields: Partial<UpdateSubcategoryParams> = {};
+    if (name) updateFields.name = name;
+    if (description) updateFields.description = description;
+    if (categoryId) updateFields.categoryId = categoryId; 
+    if (brands) updateFields.brands = brands;
+
+    const updatedSubcategory = await subcategoryModel
+      .findByIdAndUpdate(subcategoryId, { $set: updateFields }, { new: true })
+      .select("name description brands categoryId creator");
+
+    console.log("Güncellenen Subcategory:", updatedSubcategory); // Güncelleme sonrası kontrol
+
+    if (!updatedSubcategory) {
+      return { data: "Alt kategori güncellenemedi!", statusCode: 500 };
+    }
+
+    // Kategori adını almak için categoryId'yi kullan
+    const category = await categoryModel.findById(updatedSubcategory.categoryId).select("name");
+
+    // Kullanıcı adını almak için creator ID'yi kullan
+    const creator = await userModel.findById(updatedSubcategory.creator).select("name surname");
+
+    return {
+      data: {
+        categoryName: category ? category.name : "Kategori bulunamadı",
+        subcategoryName: updatedSubcategory.name,
+        description: updatedSubcategory.description,
+        brands: updatedSubcategory.brands, 
+        creatorName: creator ? `${creator.name} ${creator.surname}` : "Oluşturan kişi bulunamadı",
+      },
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Güncelleme hatası:", error);
+    return { data: "Alt kategori güncellenemedi!", statusCode: 500 };
+  }
+};
+/************************************************************************************* */
+
+//delete subcategory fonksiyon
+
+
+
+  
