@@ -5,14 +5,16 @@ export interface ICategory extends Document{
     name: string;
     description?: string;
     image: string;
-    creator: ObjectId ;
+    createdBy: ObjectId ;
+    updatedBy: ObjectId ;
 }
 
 const categorySchema = new Schema <ICategory> ({
     name: {type:String, required: true},
     description: {type: String},
     image:{type: String, required: true},
-    creator:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
+    createdBy:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
+    updatedBy:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
 }, 
  {
     timestamps: true, // createDate otomatik eklenecek

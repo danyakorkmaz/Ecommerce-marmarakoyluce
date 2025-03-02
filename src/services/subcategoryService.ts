@@ -2,20 +2,21 @@ import mongoose from "mongoose";
 import userModel from "../models/userModel";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
+import productModel from "../models/productModel";
 
 interface CreateSubcategoryParams {
     name: string;
     description?: string;
     categoryId: string; // String olarak alınacak, ObjectId'ye çevrilecek
     brands: string[];
-    creator: string;
+    createdBy: string;
 }
 export const createSubcategory = async ({
     name,
     description,
     categoryId,
     brands,
-    creator,
+    createdBy,
 }: CreateSubcategoryParams) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
@@ -24,7 +25,7 @@ export const createSubcategory = async ({
                 statusCode: 400,
             };
         }
-        if (!mongoose.Types.ObjectId.isValid(creator)) {
+        if (!mongoose.Types.ObjectId.isValid(createdBy)) {
             return {
                 data: "Geçersiz creatorID. Lütfen geçerli bir creatorID yazınız!",
                 statusCode: 400,
@@ -32,7 +33,7 @@ export const createSubcategory = async ({
         }
 
         // creator ID'sini ObjectId'ye çevir
-        const creatorObjectId = new mongoose.Types.ObjectId(creator);
+        const creatorObjectId = new mongoose.Types.ObjectId(createdBy);
 
         // Kullanıcı kontrolü
         const findUser = await userModel.findById(creatorObjectId);
@@ -68,7 +69,8 @@ export const createSubcategory = async ({
             description,
             categoryId: categoryObjectId,
             brands,
-            creator: creatorObjectId,
+            createdBy: creatorObjectId,
+            updatedBy: creatorObjectId,
         });
 
         const savedSubcategory = await newSubcategory.save();
@@ -79,7 +81,7 @@ export const createSubcategory = async ({
             description: savedSubcategory.description,
             categoryName: findCategory.name, // Kategori adı
             brands: savedSubcategory.brands,
-            creator: {
+            createdBy: {
                 name: `${findUser.name} ${findUser.surname}`, // Kullanıcının adı eklendi
             },
         };
@@ -94,6 +96,7 @@ export const createSubcategory = async ({
 
 interface UpdateSubcategoryParams {
     subcategoryId: string;
+    updatedBy: string;
     name?: string;
     description?: string;
     categoryId?: string;
@@ -102,6 +105,7 @@ interface UpdateSubcategoryParams {
 
 export const updateSubcategory = async ({
     subcategoryId,
+    updatedBy,
     name,
     description,
     categoryId,
@@ -130,15 +134,49 @@ export const updateSubcategory = async ({
             }
         }
 
-        const updateFields: Partial<UpdateSubcategoryParams> = {};
-        if (name) updateFields.name = name;
-        if (description) updateFields.description = description;
-        if (categoryId) updateFields.categoryId = categoryId;
-        if (brands) updateFields.brands = brands;
+        if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
+            return {
+                data: "Updater ID girilmedi veya geçersiz Updater ID. Lütfen geçerli bir Updater ID yazınız!",
+                statusCode: 400,
+            };
+        }
 
+        // Kullanıcının var olup olmadığını kontrol et
+        const findUser = await userModel.findById(updatedBy);
+
+        if (!findUser) {
+            return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
+        }
+
+        if (!findUser.adminFlag) {
+            return {
+                data: "Yetkiniz yok! Sadece adminler kategori ekleyebilir.",
+                statusCode: 403,
+            };
+        }
+
+        const updateFields: Partial<UpdateSubcategoryParams> = {};
+        updateFields.updatedBy = updatedBy;
+
+        if (name && subcategory.name !== name) {
+            updateFields.name = name;
+        }
+        if (description && subcategory.description !== description) {
+            updateFields.description = description;
+        }
+        if (brands && (new Set(subcategory.brands).size !== new Set(brands).size || ![...new Set(subcategory.brands)].every(value => new Set(brands).has(value)) )) {
+            updateFields.brands = brands;
+        }
+        if (categoryId && subcategory.categoryId.toString() !== categoryId) {
+            updateFields.categoryId = categoryId;
+        }
+        
+        if (Object.keys(updateFields).length === 1) {
+            return { data: " Alt kategorinin hiçbir verisinin güncellenmiş hali girilmedi!", statusCode: 400 };
+        }
         const updatedSubcategory = await subcategoryModel
             .findByIdAndUpdate(subcategoryId, { $set: updateFields }, { new: true })
-            .select("name description brands categoryId creator");
+            .select("name description brands categoryId updatedBy");
 
         if (!updatedSubcategory) {
             return { data: "Alt kategori güncellenemedi!", statusCode: 500 };
@@ -148,7 +186,7 @@ export const updateSubcategory = async ({
         const category = await categoryModel.findById(updatedSubcategory.categoryId).select("name");
 
         // Kullanıcı adını almak için creator ID'yi kullan
-        const creator = await userModel.findById(updatedSubcategory.creator).select("name surname");
+        const updater = await userModel.findById(updatedSubcategory.updatedBy).select("name surname");
 
         return {
             data: {
@@ -156,7 +194,8 @@ export const updateSubcategory = async ({
                 subcategoryName: updatedSubcategory.name,
                 description: updatedSubcategory.description,
                 brands: updatedSubcategory.brands,
-                creatorName: creator ? `${creator.name} ${creator.surname}` : "Oluşturan kişi bulunamadı",
+                updaterName: updater ? `${updater.name} ${updater.surname}` : "Güncelleyen kişi bulunamadı",
+
             },
             statusCode: 200,
         };
@@ -166,8 +205,6 @@ export const updateSubcategory = async ({
     }
 };
 /************************************************************************************* */
-
-//delete subcategory fonksiyon
 interface DeleteSubcategoryParams {
     subcategoryId: string;
 }
@@ -185,7 +222,14 @@ export const deleteSubcategory = async ({ subcategoryId }: DeleteSubcategoryPara
             return { data: "Alt kategori bulunamadı!", statusCode: 404 };
         }
 
-        // Alt kategoriyi sil**
+        // **Bu alt kategoriye bağlı ürün var mı?**
+        const productsInSubcategory = await productModel.find({ subcategoryId });
+
+        if (productsInSubcategory.length > 0) {
+            return { data: "Bu alt kategoriye bağlı ürünler var, önce onları silmelisiniz!", statusCode: 400 };
+        }
+
+        // **Alt kategoriyi sil**
         const deletedSubcategory = await subcategoryModel.findByIdAndDelete(subcategoryId);
 
         if (!deletedSubcategory) {
@@ -198,6 +242,7 @@ export const deleteSubcategory = async ({ subcategoryId }: DeleteSubcategoryPara
         return { data: "Alt kategori silinirken bir hata oluştu!", statusCode: 500 };
     }
 };
+
 /************************************************************************************* */
 
 
@@ -213,8 +258,8 @@ export const getAllSubcategories = async (categoryId?: string) => {
         const subcategories = await subcategoryModel
             .find(filter)
             .populate("categoryId", "name") // Kategori adını getir
-            .populate("creator", "name surname")
-            .select("name brands creator categoryId -_id")
+            .populate("createdBy", "name surname")
+            .select("name brands createdBy categoryId -_id")
             .lean();
 
         // categoryId'yi category olarak yeniden adlandır
@@ -223,8 +268,8 @@ export const getAllSubcategories = async (categoryId?: string) => {
                 subcategory.category = subcategory.categoryId.name;
                 delete subcategory.categoryId;
             }
-            if (subcategory.creator) {
-                subcategory.creator = `${subcategory.creator.name} ${subcategory.creator.surname}`;
+            if (subcategory.createdBy) {
+                subcategory.createdBy = `${subcategory.createdBy.name} ${subcategory.createdBy.surname}`;
             }
         });
 

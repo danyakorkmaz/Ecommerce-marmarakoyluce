@@ -2,10 +2,11 @@ import mongoose, {Schema, Document, ObjectId, model} from "mongoose";
 
 export interface ISubcategory extends Document{
     name: string;
-    categoryId: ObjectId ;
+    categoryId: ObjectId;
     description?: string;
     brands: string[];
-    creator: ObjectId ;
+    createdBy: ObjectId;
+    updatedBy: ObjectId;
 }
 
 const subcategorySchema = new Schema <ISubcategory> ({
@@ -13,7 +14,8 @@ const subcategorySchema = new Schema <ISubcategory> ({
     categoryId: {type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     description: {type: String},
     brands:{type: [String], default: []},
-    creator:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
+    createdBy:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
+    updatedBy:{ type: Schema.Types.ObjectId, ref: "User", required: true }, // Kullanıcı ilişkisi için ObjectId kullanılabilir
 }, 
  {
     timestamps: true, // createDate otomatik eklenecek

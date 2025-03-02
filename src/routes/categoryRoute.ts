@@ -5,8 +5,8 @@ const router = express.Router();
 
 router.post("/create", async (req, res) => {
   try {
-    const { name, description, image, creator } = req.body;
-    const { statusCode, data } = await createCategory({ name, description, image, creator });
+    const { name, description, image, createdBy } = req.body;
+    const { statusCode, data } = await createCategory({ name, description, image, createdBy });
     res.status(statusCode).send(data);
   } catch {
     res.status(500).send("Something went wrong!");
@@ -15,8 +15,8 @@ router.post("/create", async (req, res) => {
 
 router.post("/update", async (req, res) => {
   try {
-    const { categoryId, name, description, image } = req.body;
-    const { statusCode, data } = await updateCategory({ categoryId, name, description, image });
+    const { categoryId, updatedBy, name, description, image } = req.body;
+    const { statusCode, data } = await updateCategory({ categoryId, updatedBy, name, description, image });
     res.status(statusCode).send(data);
   } catch {
     res.status(500).send("Something went wrong!");
