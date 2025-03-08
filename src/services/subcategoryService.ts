@@ -8,14 +8,12 @@ interface CreateSubcategoryParams {
     name: string;
     description?: string;
     categoryId: string; // String olarak alınacak, ObjectId'ye çevrilecek
-    brands: string[];
     createdBy: string;
 }
 export const createSubcategory = async ({
     name,
     description,
     categoryId,
-    brands,
     createdBy,
 }: CreateSubcategoryParams) => {
     try {
@@ -68,7 +66,6 @@ export const createSubcategory = async ({
             name,
             description,
             categoryId: categoryObjectId,
-            brands,
             createdBy: creatorObjectId,
             updatedBy: creatorObjectId,
         });
@@ -100,7 +97,6 @@ interface UpdateSubcategoryParams {
     name?: string;
     description?: string;
     categoryId?: string;
-    brands?: string[];
 }
 
 export const updateSubcategory = async ({
@@ -109,7 +105,6 @@ export const updateSubcategory = async ({
     name,
     description,
     categoryId,
-    brands,
 }: UpdateSubcategoryParams) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
@@ -164,9 +159,6 @@ export const updateSubcategory = async ({
         if (description && subcategory.description !== description) {
             updateFields.description = description;
         }
-        if (brands && (new Set(subcategory.brands).size !== new Set(brands).size || ![...new Set(subcategory.brands)].every(value => new Set(brands).has(value)) )) {
-            updateFields.brands = brands;
-        }
         if (categoryId && subcategory.categoryId.toString() !== categoryId) {
             updateFields.categoryId = categoryId;
         }
@@ -193,7 +185,6 @@ export const updateSubcategory = async ({
                 categoryName: category ? category.name : "Kategori bulunamadı",
                 subcategoryName: updatedSubcategory.name,
                 description: updatedSubcategory.description,
-                brands: updatedSubcategory.brands,
                 updaterName: updater ? `${updater.name} ${updater.surname}` : "Güncelleyen kişi bulunamadı",
 
             },
@@ -271,6 +262,7 @@ export const getAllSubcategories = async (categoryId?: string) => {
             if (subcategory.createdBy) {
                 subcategory.createdBy = `${subcategory.createdBy.name} ${subcategory.createdBy.surname}`;
             }
+            subcategory.brands = Object.keys(subcategory.brands);
         });
 
         if (!subcategories.length) {

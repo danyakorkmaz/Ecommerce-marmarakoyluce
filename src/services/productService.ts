@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import userModel from "../models/userModel";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
 import productModel from "../models/productModel";
-import updateRecentlyAddedFlag from "../cronJobs/updateRecentlyAdded";
 
 
 interface CreateProductParams {
@@ -20,18 +19,18 @@ interface CreateProductParams {
   measureValue: number;
   stockCount: number;
   createdBy: string;
-  brandName: string;
+  brand: string;
 }
 
 export const createProduct = async ({
-  title, description, image, otherImages = [], SKU, categoryId, subcategoryId, 
-  price, discountedPrice = 0, measureUnit, measureValue, stockCount, createdBy, brandName
+  title, description, image, otherImages = [], SKU, categoryId, subcategoryId,
+  price, discountedPrice = 0, measureUnit, measureValue, stockCount, createdBy, brand
 }: CreateProductParams) => {
   try {
     //  Eksik Alan Kontrolleri**
-    if (!title || !description || !image || !SKU || !categoryId || !subcategoryId || 
-        price === undefined || measureUnit === undefined || measureValue === undefined || 
-        stockCount === undefined || !createdBy || brandName === undefined ) {
+    if (!title || !description || !image || !SKU || !categoryId || !subcategoryId ||
+      price === undefined || measureUnit === undefined || measureValue === undefined ||
+      stockCount === undefined || !createdBy || !brand) {
       return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
     }
 
@@ -74,14 +73,7 @@ export const createProduct = async ({
       return { data: "Alt kategori bulunamadı! Lütfen geçerli bir alt kategori seçin.", statusCode: 404 };
     }
 
-    // Marka, Alt Kategoride Tanımlı mı?
-    const brandExists = findSubcategory.brands.some(
-      brand => brand.trim().toLowerCase() === brandName.trim().toLowerCase()
-    );
-    if (!brandExists) {
-      return { data: "Bu marka bağlı olan alt kategoriye eklenmemiş! Önce alt kategoriye ekleyin.", statusCode: 400 };
-    }
- 
+
     // Negatif değer kontrolü
     if (price !== undefined && price < 0) {
       return { data: "Fiyat 0 veya negatif olamaz!", statusCode: 400 };
@@ -95,6 +87,8 @@ export const createProduct = async ({
     if (stockCount !== undefined && stockCount <= 0) {
       return { data: "Stok 0 veya  adedi negatif olamaz!", statusCode: 400 };
     }
+
+    brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
 
     // **6. Yeni Ürünü Kaydet**
     const newProduct = new productModel({
@@ -113,11 +107,23 @@ export const createProduct = async ({
       createdBy: creatorObjectId,
       updatedBy: creatorObjectId,
       recentlyAddedFlag: true, // **Yeni ürünlerde recentlyAddedFlag true olacak**
-      createDate: new Date(), // **Ürünün eklendiği tarih**
-      brand: brandName,
+      brand,
     });
 
     const savedProduct = await newProduct.save();
+
+    const oldBrands = findSubcategory.brands instanceof Map ? Object.fromEntries(findSubcategory.brands) : {};
+
+    // Get existing products array or initialize an empty one
+    const existingProducts = (oldBrands[brand] as ObjectId[]) || [];
+
+    // Add new product ID
+    oldBrands[brand] = [...existingProducts, savedProduct._id as ObjectId];
+
+    // Convert back to a Mongoose `Map`
+    findSubcategory.brands = new Map(Object.entries(oldBrands));
+    
+    await findSubcategory.save();
 
     return {
       data: {
@@ -125,14 +131,14 @@ export const createProduct = async ({
         title: savedProduct.title,
         description: savedProduct.description,
         image: savedProduct.image,
-        price:`${savedProduct.price} TL`,
+        price: `${savedProduct.price} TL`,
         discountedPrice: `${savedProduct.discountedPrice} TL`,
         measureUnit: savedProduct.measureUnit,
         measureValue: savedProduct.measureValue,
         category: findCategory.name,
         subcategory: findSubcategory.name,
         creatorName: `${findUser.name} ${findUser.surname}`,
-        brand: brandName,
+        brand: brand,
       },
       statusCode: 201,
     };
@@ -265,15 +271,15 @@ export const updateProduct = async ({
     if (measureValue !== undefined && product.measureValue !== measureValue) updateFields.measureValue = measureValue;
     if (stockCount !== undefined && product.stockCount !== stockCount) updateFields.stockCount = stockCount;
 
-    // `recentlyAddedFlag` Güncelleme Mekanizması
-    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 gün
-    const isNew = Date.now() - new Date(product.createDate).getTime() < SEVEN_DAYS;
+    // // `recentlyAddedFlag` Güncelleme Mekanizması
+    // const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 gün
+    // const isNew = Date.now() - new Date(product.createDate).getTime() < SEVEN_DAYS;
 
-    if (recentlyAddedFlag !== undefined) {
-      updateFields.recentlyAddedFlag = recentlyAddedFlag; // Manuel ayarlama
-    } else {
-      updateFields.recentlyAddedFlag = isNew; // Otomatik belirleme
-    }
+    // if (recentlyAddedFlag !== undefined) {
+    //   updateFields.recentlyAddedFlag = recentlyAddedFlag; // Manuel ayarlama
+    // } else {
+    //   updateFields.recentlyAddedFlag = isNew; // Otomatik belirleme
+    // }
 
     if (Object.keys(updateFields).length === 1) {
       return { data: "Ürünün hiçbir verisi değişmedi!", statusCode: 400 };

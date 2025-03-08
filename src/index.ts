@@ -23,20 +23,20 @@ app.use(express.json());
 updateRecentlyAddedFlag();
 
 mongoose
-//   .connect(process.env.DATABASE_URL || "")
-.connect("mongodb://localhost:27017/koyluce")
+  //   .connect(process.env.DATABASE_URL || "")
+  .connect("mongodb://localhost:27017/koyluce")
   .then(() => console.log("Mongo connected !"))
   .catch((err) => console.log("Failed to connect!", err));
 
 
- app.use('/user', userRoute);
- app.use('/category', categoryRoute);
+app.use('/user', userRoute);
+app.use('/category', categoryRoute);
 app.use('/cart', cartRoute);
 app.use("/subcategories", subcategoryRoute);
 app.use('/cart', cartRoute);
-app.use("/product",productRoute);
+app.use("/product", productRoute);
 
 
-  app.listen(port, () => {
-   console.log(`Server is running at :http://localhost:${port}`)
-  })
+app.listen(port, () => {
+  console.log(`Server is running at :http://localhost:${port}`)
+})

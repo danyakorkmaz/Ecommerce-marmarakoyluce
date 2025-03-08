@@ -6,8 +6,8 @@ const router = express.Router();
 
 router.post("/create", async (req, res) => {
   try {
-    const { name, categoryId, description, brands, createdBy } = req.body;
-    const { statusCode, data } = await createSubcategory({ name, categoryId, description, brands, createdBy });
+    const { name, categoryId, description, createdBy } = req.body;
+    const { statusCode, data } = await createSubcategory({ name, categoryId, description, createdBy });
     res.status(statusCode).send(data);
   } catch (error) {
     res.status(500).send({ error: "Bir hata oluştu!" });
@@ -17,8 +17,8 @@ router.post("/create", async (req, res) => {
 
 router.post("/update", async (req, res) => {
   try {
-    const { categoryId, updatedBy, name, description, subcategoryId, brands } = req.body;
-    const { statusCode, data } = await updateSubcategory({ categoryId, updatedBy, name, description,subcategoryId,brands });
+    const { categoryId, updatedBy, name, description, subcategoryId } = req.body;
+    const { statusCode, data } = await updateSubcategory({ categoryId, updatedBy, name, description,subcategoryId });
     res.status(statusCode).send(data);
   } catch {
     res.status(500).send("Something went wrong!");
