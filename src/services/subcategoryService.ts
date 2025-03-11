@@ -17,6 +17,10 @@ export const createSubcategory = async ({
     createdBy,
 }: CreateSubcategoryParams) => {
     try {
+                //  Eksik Alan Kontrolleri**
+    if (!name || !categoryId || !createdBy) {
+        return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+      }
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
             return {
                 data: "Geçersiz kategoriID . Lütfen Geçerli bir kategoriID yazınız! ",
@@ -107,6 +111,9 @@ export const updateSubcategory = async ({
     categoryId,
 }: UpdateSubcategoryParams) => {
     try {
+        if ( !subcategoryId || !updatedBy) {
+            return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+          }
         if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
             return {
                 data: "Geçersiz alt kategori ID. Lütfen geçerli bir ID yazınız!",

@@ -18,7 +18,11 @@ export const createCategory = async ({ name, description, image, createdBy }: Cr
     if (!mongoose.Types.ObjectId.isValid(createdBy)) {
           return { data: "Geçersiz creator ID. Lütfen geçerli bir creator ID yazınız!", statusCode: 400 };
         }
-           
+             //  Eksik Alan Kontrolleri**
+    if (!name ||  !image || !createdBy) {
+      return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+    }
+
     const creatorObjectId = new mongoose.Types.ObjectId(createdBy);
     const findUser = await userModel.findById(creatorObjectId);
 
@@ -59,6 +63,11 @@ export const updateCategory = async ({ categoryId, updatedBy, name, description,
   try {
     if (!mongoose.Types.ObjectId.isValid(categoryId)) return { data: "Geçersiz kategori ID!", statusCode: 400 };
     if (!mongoose.Types.ObjectId.isValid(updatedBy)) return { data: "Geçersiz Updater ID!", statusCode: 400 };
+
+
+    if (!categoryId || !updatedBy ) {
+      return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+    }
 
     const category = await categoryModel.findById(categoryId);
     if (!category) return { data: "Kategori bulunamadı!", statusCode: 404 };

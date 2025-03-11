@@ -6,7 +6,7 @@ import userRoute from "./routes/userRoute";
 import categoryRoute from "./routes/categoryRoute"
 import cartRoute from "./routes/cartRoute";
 import subcategoryRoute from "./routes/subcategoryRoute";
-import updateRecentlyAddedFlag from "./cronJobs/updateRecentlyAdded";
+import updateRecentlyAddedFlag from "./cronJobs/updateRecentlyAdded"; 
 import productRoute from "./routes/productRoute";
 
 

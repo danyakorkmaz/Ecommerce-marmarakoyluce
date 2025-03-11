@@ -6,8 +6,8 @@ export interface IProduct extends Document {
     image: string; 
     otherImages: string[]; 
     SKU: string; // Stok kodu (Stock Keeping Unit)
-    categoryId: string;
-    subcategoryId: string;
+    categoryId: ObjectId;
+    subcategoryId: ObjectId;
     price: number; 
     discountedPrice: number; 
     measureUnit: string; // Ölçü birimi (ör. "kg", "lt", "adet")
@@ -30,8 +30,8 @@ const productSchema = new Schema<IProduct>({
     image: { type: String, required: true },
     otherImages: { type: [String], default: [] },
     SKU: { type: String, required: true, unique: true },
-    categoryId: { type: String, required: true },
-    subcategoryId: { type: String, required: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true  },
+    subcategoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Subcategory", required: true },
     price: { type: Number, required: true },
     discountedPrice: { type: Number, default: 0 },
     measureUnit: { type: String, required: true },

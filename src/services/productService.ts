@@ -122,7 +122,7 @@ export const createProduct = async ({
 
     // Convert back to a Mongoose `Map`
     findSubcategory.brands = new Map(Object.entries(oldBrands));
-    
+
     await findSubcategory.save();
 
     return {
@@ -167,163 +167,321 @@ interface UpdateProductParams {
   measureValue?: number;
   stockCount?: number;
   recentlyAddedFlag?: boolean;
+  brand?: string;
 }
 
-export const updateProduct = async ({
-  productId,
-  updatedBy,
-  title,
-  description,
-  image,
-  otherImages,
-  SKU,
-  categoryId,
-  subcategoryId,
-  price,
-  discountedPrice,
-  measureUnit,
-  measureValue,
-  stockCount,
-  recentlyAddedFlag,
-}: UpdateProductParams) => {
+// export const updateProduct = async ({
+//   productId,
+//   updatedBy,
+//   title,
+//   description,
+//   image,
+//   otherImages = [],
+//   SKU,
+//   categoryId,
+//   subcategoryId,
+//   price,
+//   discountedPrice = 0,
+//   measureUnit,
+//   measureValue,
+//   stockCount,
+//   recentlyAddedFlag,
+//   brand,
+//   ...extraFields // Parametreleri buraya ekle
+// }: UpdateProductParams & { [key: string]: any }) => {
+//   try {
+//     // 1. Geçersiz Parametre Kontrolü
+//     const allowedFields = [
+//       "productId",
+//       "updatedBy",
+//       "title",
+//       "description",
+//       "image",
+//       "otherImages",
+//       "SKU",
+//       "categoryId",
+//       "subcategoryId",
+//       "price",
+//       "discountedPrice",
+//       "measureUnit",
+//       "measureValue",
+//       "stockCount",
+//       "recentlyAddedFlag",
+//       "brand",
+//     ];
+
+//     // extraFields üzerinden gelen geçersiz alanları kontrol et
+//     const invalidFields = Object.keys(extraFields).filter(field => !allowedFields.includes(field));
+
+//     if (invalidFields.length > 0) {
+//       return { data: `Geçersiz alanlar tespit edildi: ${invalidFields.join(", ")}`, statusCode: 400 };
+//     }
+
+//     // 2. Gerekli Parametre Kontrolleri
+//     if (!productId || !updatedBy) {
+//       return { data: "Ürün ID ve Güncelleyen Kullanıcı ID gereklidir!", statusCode: 400 };
+//     }
+
+//     // 2. Geçersiz ID Kontrolleri
+//     if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
+//       return { data: "Geçersiz kullanıcı ID!", statusCode: 400 };
+//     }
+//     const updatedByObjectId = new mongoose.Types.ObjectId(updatedBy);
+
+//     if (!mongoose.Types.ObjectId.isValid(productId)) {
+//       return { data: "Geçersiz ürün ID!", statusCode: 400 };
+//     }
+// if (!name || !categoryId || !createdBy) {
+//   return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+// }
+//     // 3. Kullanıcı Yetkisi Kontrolü
+//     const findUser = await userModel.findById(updatedByObjectId);
+//     if (!findUser) {
+//       return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
+//     }
+//     if (!findUser.adminFlag) {
+//       return { data: "Yetkisiz işlem! Sadece adminler ürün güncelleyebilir.", statusCode: 403 };
+//     }
+
+//     // 4. Ürün Bulma
+//     const product = await productModel.findById(productId);
+//     if (!product) {
+//       return { data: "Ürün bulunamadı!", statusCode: 404 };
+//     }
+
+//     // 5. Kategori ve Alt Kategori Kontrolleri
+//     if (categoryId) {
+//       const findCategory = await categoryModel.findById(categoryId);
+//       if (!findCategory) {
+//         return { data: "Kategori bulunamadı!", statusCode: 404 };
+//       }
+//     }
+
+//     if (subcategoryId) {
+//       const findSubcategory = await subcategoryModel.findById(subcategoryId);
+//       if (!findSubcategory) {
+//         return { data: "Alt kategori bulunamadı!", statusCode: 404 };
+//       }
+//     }
+
+//     // 6. Negatif Değer Kontrolü
+//     if (price !== undefined && price < 0) {
+//       return { data: "Fiyat negatif olamaz!", statusCode: 400 };
+//     }
+//     if (discountedPrice !== undefined && discountedPrice < 0) {
+//       return { data: "İndirimli fiyat negatif olamaz!", statusCode: 400 };
+//     }
+//     if (measureValue !== undefined && measureValue <= 0) {
+//       return { data: "Ölçü birimi 0 veya negatif olamaz!", statusCode: 400 };
+//     }
+//     if (stockCount !== undefined && stockCount < 0) {
+//       return { data: "Stok 0 veya negatif olamaz!", statusCode: 400 };
+//     }
+
+//     const updatedData: Partial<UpdateProductParams> = {};
+
+//     if (title !== undefined) updatedData.title = title;
+//     if (description !== undefined) updatedData.description = description;
+//     if (image !== undefined) updatedData.image = image;
+//     if (otherImages !== undefined) updatedData.otherImages = otherImages;
+//     if (SKU !== undefined) updatedData.SKU = SKU;
+//     if (categoryId !== undefined) updatedData.categoryId = categoryId;
+//     if (subcategoryId !== undefined) updatedData.subcategoryId = subcategoryId;
+//     if (price !== undefined) updatedData.price = price;
+//     if (discountedPrice !== undefined) updatedData.discountedPrice = discountedPrice;
+//     if (measureUnit !== undefined) updatedData.measureUnit = measureUnit;
+//     if (measureValue !== undefined) updatedData.measureValue = measureValue;
+//     if (stockCount !== undefined) updatedData.stockCount = stockCount;
+//     if (recentlyAddedFlag !== undefined) updatedData.recentlyAddedFlag = recentlyAddedFlag;
+//     if (brand !== undefined) {
+//       updatedData.brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
+//     }
+
+//     // 8. Ürün Güncelleme
+//     const updatedProduct = await productModel.findByIdAndUpdate(
+//       productId,
+//       {
+//         ...updatedData,
+//         updatedBy: updatedByObjectId,
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedProduct) {
+//       return { data: "Ürün güncellenirken bir hata oluştu.", statusCode: 500 };
+//     }
+//     //const productData = product.toObject() as Partial<UpdateProductParams>;
+//     const productData: Partial<UpdateProductParams> = {
+//       productId: (updatedProduct._id as mongoose.Types.ObjectId).toString(),
+//       title: updatedProduct.title,
+//       description: updatedProduct.description,
+//       image: updatedProduct.image,
+//       otherImages: updatedProduct.otherImages,
+//       SKU: updatedProduct.SKU,
+//       categoryId: updatedProduct.categoryId?.toString(),
+//       subcategoryId: updatedProduct.subcategoryId?.toString(),
+//       price: updatedProduct.price,
+//       discountedPrice: updatedProduct.discountedPrice,
+//       measureUnit: updatedProduct.measureUnit,
+//       measureValue: updatedProduct.measureValue,
+//       stockCount: updatedProduct.stockCount,
+//       recentlyAddedFlag: updatedProduct.recentlyAddedFlag,
+//       brand: updatedProduct.brand,
+//       updatedBy: updatedProduct.updatedBy.toString(),
+//     };
+
+//     // 9. Eğer hiçbir alan değişmemişse mesaj döndür
+//     const isDataUnchanged = Object.keys(updatedData).every(
+//       (key) => updatedData[key as keyof Partial<UpdateProductParams>] === productData[key as keyof Partial<UpdateProductParams>]
+//     );
+
+//     if (isDataUnchanged) {
+//       return { data: "Güncellenen bir değişiklik yok!", statusCode: 200 };
+//     }
+
+//     return {
+//       data: {
+//         id: updatedProduct._id,
+//         title: updatedProduct.title,
+//         description: updatedProduct.description,
+//         image: updatedProduct.image,
+//         price: `${updatedProduct.price} TL`,
+//         discountedPrice: `${updatedProduct.discountedPrice} TL`,
+//         measureUnit: updatedProduct.measureUnit,
+//         measureValue: updatedProduct.measureValue,
+//         category: updatedProduct.categoryId,
+//         subcategory: updatedProduct.subcategoryId,
+//         creatorName: `${findUser.name} ${findUser.surname}`,
+//         brand: updatedProduct.brand,
+//       },
+//       statusCode: 200,
+//     };
+//   } catch (error) {
+//     console.error("Ürün güncelleme hatası:", error);
+//     return { data: "Ürün güncellenirken bir hata meydana geldi!", statusCode: 500 };
+//   }
+// };
+
+
+/************************************************************************************* */
+
+// delete fonksyon istediğimiz ürünü belirdiğimiz id'ye gore silmek istiyoruz
+interface DeleteProductParams {
+  productId: string;
+}
+
+export const deleteProduct = async ({ productId }: { productId?: string }) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return { data: "Geçersiz ürün ID!", statusCode: 400 };
-    }
-
-    // Ürünü bul
-    const product = await productModel.findById(productId);
-    if (!product) {
-      return { data: "Ürün bulunamadı!", statusCode: 404 };
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
-      return { data: "Geçersiz kullanıcı ID!", statusCode: 400 };
-    }
-
-    // Kullanıcı kontrolü
-    const findUser = await userModel.findById(updatedBy);
-    if (!findUser) {
-      return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
-    }
-    if (!findUser.adminFlag) {
-      return { data: "Yetkiniz yok! Sadece adminler ürün güncelleyebilir.", statusCode: 403 };
-    }
-
-    // SKU kontrolü (değiştirildiyse)
-    if (SKU && SKU !== product.SKU) {
-      const existingProduct = await productModel.findOne({ SKU });
-      if (existingProduct) {
-        return { data: "Bu SKU zaten başka bir ürüne ait!", statusCode: 400 };
+    if (productId) {
+      // **Tek bir ürünü sil**
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return { data: " Geçersiz ürün ID!", statusCode: 400 };
       }
-    }
 
-    // Kategori ve alt kategori kontrolü
-    if (categoryId && !mongoose.Types.ObjectId.isValid(categoryId)) {
-      return { data: "Geçersiz kategori ID!", statusCode: 400 };
-    }
-    if (subcategoryId && !mongoose.Types.ObjectId.isValid(subcategoryId)) {
-      return { data: "Geçersiz alt kategori ID!", statusCode: 400 };
-    }
-
-    if (categoryId) {
-      const findCategory = await categoryModel.findById(categoryId);
-      if (!findCategory) {
-        return { data: "Kategori bulunamadı!", statusCode: 404 };
+      const product = await productModel.findById(productId);
+      if (!product) {
+        return { data: " Ürün bulunamadı!", statusCode: 404 };
       }
-    }
 
-    if (subcategoryId) {
-      const findSubcategory = await subcategoryModel.findById(subcategoryId);
-      if (!findSubcategory) {
-        return { data: "Alt kategori bulunamadı!", statusCode: 404 };
+      const { subcategoryId, brand } = product;
+
+      await productModel.findByIdAndDelete(productId);
+
+        // **Subcategory'den productId'yi kaldır ve eğer markada başka ürün yoksa markayı da kaldır**
+        if (subcategoryId) {
+          const findSubcategory = await subcategoryModel.findById(subcategoryId);
+          if (findSubcategory) {
+            const oldBrands = findSubcategory.brands instanceof Map ? Object.fromEntries(findSubcategory.brands) : {};
+  
+            // Eğer marka varsa ve içinde bu ürünü barındırıyorsa
+            if (oldBrands[brand]) {
+              // Ürünü listeden çıkar
+              oldBrands[brand] = oldBrands[brand].filter((id: ObjectId) => id.toString() !== productId);
+  
+              // Eğer bu markaya ait hiç ürün kalmadıysa markayı tamamen sil
+              if (oldBrands[brand].length === 0) {
+                delete oldBrands[brand];
+              }
+            }
+
+          // Güncellenmiş `brands` bilgisini tekrar Map'e çevir
+          findSubcategory.brands = new Map(Object.entries(oldBrands));
+          await findSubcategory.save();
+        }
       }
+      return { data: " Ürün başarıyla silindi!", statusCode: 200 };
     }
 
-    // Negatif değer kontrolü
-    if (price !== undefined && price < 0) {
-      return { data: "Fiyat negatif olamaz!", statusCode: 400 };
+    else {
+      // **Tüm ürünleri sil**
+      const deletedProducts = await productModel.deleteMany({});
+
+      if (deletedProducts.deletedCount === 0) {
+        return { data: " Silinecek ürün bulunamadı!", statusCode: 404 };
+      }
+
+      return {
+        data: " Başarıyla işlem tamamlandı! ürün silindi.",
+        statusCode: 200
+      };
     }
-    if (discountedPrice !== undefined && discountedPrice < 0) {
-      return { data: "İndirimli fiyat negatif olamaz!", statusCode: 400 };
-    }
-    if (measureValue !== undefined && measureValue <= 0) {
-      return { data: "Ölçü birimi 0 veya negatif olamaz!", statusCode: 400 };
-    }
-    if (stockCount !== undefined && stockCount < 0) {
-      return { data: "Stok adedi negatif olamaz!", statusCode: 400 };
-    }
-
-    // Güncellenecek alanları belirle
-    const updateFields: Partial<UpdateProductParams> = {};
-    updateFields.updatedBy = updatedBy;
-
-    if (title && product.title !== title) updateFields.title = title;
-    if (description && product.description !== description) updateFields.description = description;
-    if (image && product.image !== image) updateFields.image = image;
-    if (otherImages && JSON.stringify(product.otherImages) !== JSON.stringify(otherImages)) updateFields.otherImages = otherImages;
-    if (SKU && product.SKU !== SKU) updateFields.SKU = SKU;
-    if (categoryId && product.categoryId !== categoryId) updateFields.categoryId = categoryId;
-    if (subcategoryId && product.subcategoryId !== subcategoryId) updateFields.subcategoryId = subcategoryId;
-    if (price !== undefined && product.price !== price) updateFields.price = price;
-    if (discountedPrice !== undefined && product.discountedPrice !== discountedPrice) updateFields.discountedPrice = discountedPrice;
-    if (measureUnit && product.measureUnit !== measureUnit) updateFields.measureUnit = measureUnit;
-    if (measureValue !== undefined && product.measureValue !== measureValue) updateFields.measureValue = measureValue;
-    if (stockCount !== undefined && product.stockCount !== stockCount) updateFields.stockCount = stockCount;
-
-    // // `recentlyAddedFlag` Güncelleme Mekanizması
-    // const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 gün
-    // const isNew = Date.now() - new Date(product.createDate).getTime() < SEVEN_DAYS;
-
-    // if (recentlyAddedFlag !== undefined) {
-    //   updateFields.recentlyAddedFlag = recentlyAddedFlag; // Manuel ayarlama
-    // } else {
-    //   updateFields.recentlyAddedFlag = isNew; // Otomatik belirleme
-    // }
-
-    if (Object.keys(updateFields).length === 1) {
-      return { data: "Ürünün hiçbir verisi değişmedi!", statusCode: 400 };
-    }
-
-    // Ürünü güncelle
-    const updatedProduct = await productModel.findByIdAndUpdate(
-      productId,
-      { $set: updateFields },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      return { data: "Ürün güncellenemedi!", statusCode: 500 };
-    }
-
-    // Güncellemeyi yapan kişinin bilgilerini al
-    const updater = await userModel.findById(updatedProduct.updatedBy).select("name surname");
-
-    return {
-      data: {
-        title: updatedProduct.title,
-        description: updatedProduct.description,
-        image: updatedProduct.image,
-        otherImages: updatedProduct.otherImages,
-        SKU: updatedProduct.SKU,
-        categoryId: updatedProduct.categoryId,
-        subcategoryId: updatedProduct.subcategoryId,
-        price: updatedProduct.price,
-        discountedPrice: updatedProduct.discountedPrice,
-        measureUnit: updatedProduct.measureUnit,
-        measureValue: updatedProduct.measureValue,
-        stockCount: updatedProduct.stockCount,
-        recentlyAddedFlag: updatedProduct.recentlyAddedFlag,
-        updaterName: updater ? `${updater.name} ${updater.surname}` : "Bilinmeyen Kullanıcı",
-      },
-      statusCode: 200,
-    };
   } catch (error) {
-    console.error("Ürün güncelleme hatası:", error);
-    return { data: "Ürün güncellenemedi!", statusCode: 500 };
+    console.error("Ürün silme hatası:", error);
+    return { data: " Ürünler silinirken bir hata oluştu!", statusCode: 500 };
   }
 };
 
 
+
 /************************************************************************************* */
-// delete fonksyon
+
+// list-all fonksyon 
+
+export const getAllProducts = async (categoryId?: string) => {
+  try {
+    const filter = categoryId ? { categoryId } : {}; // categoryId varsa filtre uygula, yoksa tüm ürünleri getir
+
+    if (categoryId && !mongoose.Types.ObjectId.isValid(categoryId)) {
+      return { data: "Geçersiz categoryId!", statusCode: 400 };
+    }
+
+   
+    const products = await productModel
+      .find(filter)
+      .populate("categoryId", "name") // Kategori adını getir
+      .populate("subcategoryId", "name") // Alt kategori adını getir
+      .populate("createdBy", "name surname") // Ürünü ekleyen kişiyi getir
+      .select("title description image otherImages price measureUnit measureValue brand categoryId subcategoryId createdBy -_id")
+      .lean();
+
+    // Veriyi düzenle
+    products.forEach((product: any) => {
+      product.categoryName = product.categoryId?.name || "Bilinmeyen Kategori"; // Yeni alan ekle
+  delete product.categoryId;
+
+  product.subcategoryName = product.subcategoryId?.name || "Bilinmeyen Alt Kategori"; // Yeni alan ekle
+  delete product.subcategoryId;
+
+      // `brand` zaten string olarak kaydedildiği için doğrudan kullan
+      product.brand = product.brand || "Bilinmeyen Marka";
+
+
+      if (product.createdBy) {
+        product.createdBy = `${product.createdBy.name} ${product.createdBy.surname}`;
+      }
+    });
+
+    if (!products.length) {
+      return {
+        data: categoryId
+          ? "Bu kategoriye ait ürün bulunamadı!"
+          : "Henüz ürün eklenmemiş!",
+        statusCode: 404,
+      };
+    }
+
+    return { data: products, statusCode: 200 };
+  } catch (error) {
+    return { data: "Ürünler getirilemedi!", statusCode: 500 };
+  }
+};
