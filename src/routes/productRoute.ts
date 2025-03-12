@@ -1,5 +1,5 @@
 import express from "express";
-import { createProduct, deleteProduct, getAllProducts, } from "../services/productService";
+import { createProduct, deleteProduct, getAllProducts, updateProduct,  } from "../services/productService";
 
 const router = express.Router();
 
@@ -22,19 +22,19 @@ router.post("/create", async (req, res) => {
 
 
 
-// router.post("/update", async (req, res) => {
-//    try {
-//       const { productId, updatedBy, title, description, SKU, categoryId, subcategoryId, measureUnit, measureValue, price, discountedPrice, stockCount, image, otherImages, recentlyAddedFlag , brand} = req.body;
+router.post("/update", async (req, res) => {
+   try {
+      const { productId, updatedBy, title, description, SKU, categoryId, subcategoryId, measureUnit, measureValue, price, discountedPrice, stockCount, image, otherImages, recentlyAddedFlag , brand} = req.body;
 
-//       const { statusCode, data } = await updateProduct({
-//          productId, updatedBy, title, description, SKU, categoryId, subcategoryId, measureUnit, measureValue, price, discountedPrice, stockCount, image, otherImages, recentlyAddedFlag, brand });
+      const { statusCode, data } = await updateProduct({
+         productId, updatedBy, title, description, SKU, categoryId, subcategoryId, measureUnit, measureValue, price, discountedPrice, stockCount, image, otherImages, recentlyAddedFlag, brand });
 
-//       res.status(statusCode).send(data);
-//    } catch (error) {
-//       console.error("Ürün güncelleme hatası:", error);
-//       res.status(500).send("Something went wrong!");
-//    }
-// });
+      res.status(statusCode).send(data);
+   } catch (error) {
+      console.error("Ürün güncelleme hatası:", error);
+      res.status(500).send("Something went wrong!");
+   }
+});
 
 
  router.delete("/delete/:productId?", async (req, res) => {
