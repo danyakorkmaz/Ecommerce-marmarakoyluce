@@ -8,6 +8,7 @@ import cartRoute from "./routes/cartRoute";
 import subcategoryRoute from "./routes/subcategoryRoute";
 import updateRecentlyAddedFlag from "./cronJobs/updateRecentlyAdded"; 
 import productRoute from "./routes/productRoute";
+import addressRoute from "./routes/addressRoute";
 
 
 // import cors from "cors";
@@ -35,6 +36,7 @@ app.use('/cart', cartRoute);
 app.use("/subcategories", subcategoryRoute);
 app.use('/cart', cartRoute);
 app.use("/product", productRoute);
+app.use("/address", addressRoute);
 
 
 app.listen(port, () => {
