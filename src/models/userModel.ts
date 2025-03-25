@@ -20,14 +20,14 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>({
     name: { type: String, required: true },
     surname: { type: String, required: true },
-    telNumber: { type: String, required: false },
+    telNumber: { type: String, default: "" },
     email: { type: String, required: true },
     password: { type: String, required: true },
     gender: { type: String, required: true },
     profileImage: { type: String, default: "" },
-    birthdate: { type: Date, default: null },
+    birthdate: { type: Date, default: null }, // TODO: This would be changed to required field after Frontend Integration
     favouriteProductIds: [],
-    paraPuanID: { type: Schema.Types.ObjectId, ref: "ParaPuan", required: false },
+    paraPuanID: { type: Schema.Types.ObjectId, ref: "ParaPuan", default: null },
     getEmailNotificationFlag: { type: Boolean, required: true },
     adminFlag: { type: Boolean, required: true , default: false }
 })
