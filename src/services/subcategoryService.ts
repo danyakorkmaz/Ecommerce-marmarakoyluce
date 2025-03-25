@@ -17,10 +17,10 @@ export const createSubcategory = async ({
     createdBy,
 }: CreateSubcategoryParams) => {
     try {
-                //  Eksik Alan Kontrolleri**
-    if (!name || !categoryId || !createdBy) {
-        return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
-      }
+        //  Eksik Alan Kontrolleri**
+        if (!name || !categoryId || !createdBy) {
+            return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
+        }
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
             return {
                 data: "Geçersiz kategoriID . Lütfen Geçerli bir kategoriID yazınız! ",
@@ -88,7 +88,7 @@ export const createSubcategory = async ({
         };
         return { data: responseData, statusCode: 201 };
     } catch (error) {
-        return { data: "Alt kategori oluşturulamadı!", statusCode: 500 };
+        return { data: `Alt kategori oluşturulamadı! Hata Mesajı: ${error}`, statusCode: 500 };
     }
 };
 /************************************************************************************* */
@@ -111,9 +111,9 @@ export const updateSubcategory = async ({
     categoryId,
 }: UpdateSubcategoryParams) => {
     try {
-        if ( !subcategoryId || !updatedBy) {
+        if (!subcategoryId || !updatedBy) {
             return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
-          }
+        }
         if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
             return {
                 data: "Geçersiz alt kategori ID. Lütfen geçerli bir ID yazınız!",
@@ -169,7 +169,7 @@ export const updateSubcategory = async ({
         if (categoryId && subcategory.categoryId.toString() !== categoryId) {
             updateFields.categoryId = categoryId;
         }
-        
+
         if (Object.keys(updateFields).length === 1) {
             return { data: " Alt kategorinin hiçbir verisinin güncellenmiş hali girilmedi!", statusCode: 400 };
         }
@@ -199,7 +199,7 @@ export const updateSubcategory = async ({
         };
     } catch (error) {
         console.error("Güncelleme hatası:", error);
-        return { data: "Alt kategori güncellenemedi!", statusCode: 500 };
+        return { data: `Alt kategori güncellenemedi! Hata Mesajı: ${error}`, statusCode: 500 };
     }
 };
 /************************************************************************************* */
@@ -237,7 +237,7 @@ export const deleteSubcategory = async ({ subcategoryId }: DeleteSubcategoryPara
         return { data: "Alt kategori başarıyla silindi!", statusCode: 200 };
     } catch (error) {
         console.error("Alt kategori silme hatası:", error);
-        return { data: "Alt kategori silinirken bir hata oluştu!", statusCode: 500 };
+        return { data: `Alt kategori silinirken bir hata oluştu! Hata Mesajı: ${error}`, statusCode: 500 };
     }
 };
 
@@ -251,6 +251,12 @@ export const getAllSubcategories = async (categoryId?: string) => {
 
         if (categoryId && !mongoose.Types.ObjectId.isValid(categoryId)) {
             return { data: "Geçersiz categoryId!", statusCode: 400 };
+        }
+
+        const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+        const findCategory = await categoryModel.findById(categoryObjectId);
+        if (!findCategory) {
+            return { data: "Belirtilen kategori bulunamadı!", statusCode: 404 };
         }
 
         const subcategories = await subcategoryModel
@@ -274,16 +280,14 @@ export const getAllSubcategories = async (categoryId?: string) => {
 
         if (!subcategories.length) {
             return {
-                data: categoryId
-                    ? "Bu kategoriye ait alt kategori bulunamadı!"
-                    : "Henüz alt kategori eklenmemiş!",
+                data: "Bu kategoriye ait alt kategori bulunamadı!",
                 statusCode: 404,
             };
         }
 
         return { data: subcategories, statusCode: 200 };
     } catch (error) {
-        return { data: "Alt kategoriler getirilemedi!", statusCode: 500 };
+        return { data: `Alt kategoriler getirilemedi! Hata Mesajı: ${error}`, statusCode: 500 };
     }
 };
 
