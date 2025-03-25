@@ -1,4 +1,4 @@
-import userModel from "../models/userModel";
+import userModel, { IUser } from "../models/userModel";
 import bcrypt from "bcrypt"; //şifreleri güvenli hale getirmek için kullanılır 
 import jwt from "jsonwebtoken" //kullanıcı oturumlarını yönetmek için jwt oluşturur
 import dotenv from 'dotenv'
@@ -73,21 +73,15 @@ export const login = async ({ email, password }: LoginParams) => {
 
 //*************************************************************** */
 interface UpdateinfoParams {
-  email: string; // Kullanıcıyı tanımlamak için gerekli
+  user: IUser; // Kullanıcıyı tanımlamak için gerekli
   name?: string; // Güncellenebilir alanlar opsiyonel olmalı
   surname?: string;
   birthdate?: Date;
   getEmailNotificationFlag?: boolean;
 }
 
-export const updateinfo = async ({email, name, surname, birthdate, getEmailNotificationFlag}: UpdateinfoParams) => {
-  // Kullanıcıyı e-posta ile bul
-  const findUser = await userModel.findOne({ email });
-
-  if (!findUser) {
-    return { data: "User not found!", statusCode: 404 }; // Kullanıcı bulunamazsa hata döndür
-  }
-
+export const updateinfo = async ({user, name, surname, birthdate, getEmailNotificationFlag}: UpdateinfoParams) => {
+  
   // Güncellenecek alanları belirle
   const updateFields: Partial<UpdateinfoParams> = {};
   if (name) updateFields.name = name;
@@ -97,7 +91,7 @@ export const updateinfo = async ({email, name, surname, birthdate, getEmailNotif
 
   // Kullanıcı bilgilerini güncelle
   const updatedUser = await userModel.findOneAndUpdate(
-    { email }, // Şu kullanıcıyı bul
+    { email: user.email }, // Şu kullanıcıyı bul
     { $set: updateFields }, // Belirtilen alanları güncelle
     { new: true } // Güncellenmiş kullanıcıyı döndür
   );

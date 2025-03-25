@@ -1,4 +1,6 @@
 import express from "express";
+import { ExtendRequest } from "../types/extendedRequest";
+import validateJWT from "../middlewares/validateJWT";
 import { login, register, updateinfo } from "../services/userService";
 
 const router = express.Router();//tualej talabat http li anawen url
@@ -28,10 +30,11 @@ router.post('/login', async (request, response) => { //sahb altalabat mn alfront
     }
 })
 
-router.post('/updateinfo', async (request, response) => { //sahb altalabat mn alfrontend
+router.post('/updateinfo', validateJWT, async (request: ExtendRequest, response) => { //sahb altalabat mn alfrontend
     try {
-        const {email, name, surname, birthdate, getEmailNotificationFlag} = request.body;
-        const { data, statusCode } = await updateinfo({email, name, surname, birthdate, getEmailNotificationFlag})
+        const user = request?.user;
+        const { name, surname, birthdate, getEmailNotificationFlag } = request.body;
+        const { data, statusCode } = await updateinfo({user, name, surname, birthdate, getEmailNotificationFlag})
         response.status(statusCode).send(data);
     } catch {
         response.status(500).send("Something went wrong!");
