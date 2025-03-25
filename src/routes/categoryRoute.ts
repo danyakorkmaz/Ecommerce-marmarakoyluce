@@ -1,22 +1,26 @@
 import express from "express";
 import { createCategory, deleteCategory, getAllCategories, updateCategory } from "../services/categoryService";
+import validateJWT from "../middlewares/validateJWT";
+import { ExtendRequest } from "../types/extendedRequest";
 
 const router = express.Router();
 
-router.post("/create", async (req, res) => {
+router.post("/create", validateJWT, async (req: ExtendRequest, res) => {
   try {
-    const { name, description, image, createdBy } = req.body;
-    const { statusCode, data } = await createCategory({ name, description, image, createdBy });
+    const user = req?.user;
+    const { name, description, image } = req.body;
+    const { statusCode, data } = await createCategory({ user, name, description, image });
     res.status(statusCode).send(data);
   } catch {
     res.status(500).send("Something went wrong!");
   }
 });
 
-router.post("/update", async (req, res) => {
+router.post("/update", validateJWT, async (req: ExtendRequest, res) => {
   try {
-    const { categoryId, updatedBy, name, description, image } = req.body;
-    const { statusCode, data } = await updateCategory({ categoryId, updatedBy, name, description, image });
+    const user = req?.user;
+    const { categoryId, name, description, image } = req.body;
+    const { statusCode, data } = await updateCategory({ user, categoryId, name, description, image });
     res.status(statusCode).send(data);
   } catch {
     res.status(500).send("Something went wrong!");
@@ -24,10 +28,11 @@ router.post("/update", async (req, res) => {
 });
 
 
-router.delete("/delete/:categoryId", async (req, res) => {
+router.delete("/delete/:categoryId", validateJWT, async (req: ExtendRequest, res) => {
   try {
+    const user = req?.user;
     const { categoryId } = req.params;
-    const { data, statusCode } = await deleteCategory({ categoryId }); // Silme fonksiyonunu çağır
+    const { data, statusCode } = await deleteCategory({ user, categoryId }); // Silme fonksiyonunu çağır
     res.status(statusCode).send(data); // Yanıtı gönder
   } catch (error) {
     res.status(500).json({ message: "Kategori silinirken hata oluştu!" });

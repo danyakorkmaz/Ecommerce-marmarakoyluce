@@ -1,38 +1,29 @@
 import mongoose, { ObjectId } from "mongoose";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
-import userModel from "../models/userModel"; // Kullanıcı modelini içe aktar
+import { IUser } from "../models/userModel"; // Kullanıcı modelini içe aktar
 import productModel from "../models/productModel";
 
 // Create Category fonksiyonu
 interface CreateCategoryParams {
+  user: IUser;
   name: string;
   description?: string;
   image: string;
-  createdBy: string;
 }
 
-export const createCategory = async ({ name, description, image, createdBy }: CreateCategoryParams) => {
+export const createCategory = async ({ user, name, description, image }: CreateCategoryParams) => {
   try {
-
-    if (!mongoose.Types.ObjectId.isValid(createdBy)) {
-          return { data: "Geçersiz creator ID. Lütfen geçerli bir creator ID yazınız!", statusCode: 400 };
-        }
-             //  Eksik Alan Kontrolleri**
-    if (!name ||  !image || !createdBy) {
+    //  Eksik Alan Kontrolleri**
+    if (!name || !image) {
       return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
     }
+    if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
-    const creatorObjectId = new mongoose.Types.ObjectId(createdBy);
-    const findUser = await userModel.findById(creatorObjectId);
-
-    if (!findUser) return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
-    if (!findUser.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
-    
     const findCategory = await categoryModel.findOne({ name });
     if (findCategory) return { data: "Bu kategori zaten mevcut!", statusCode: 400 };
 
-    const newCategory = new categoryModel({ name, description, image, createdBy: creatorObjectId, updatedBy: creatorObjectId });
+    const newCategory = new categoryModel({ name, description, image, createdBy: user._id, updatedBy: user._id });
     const savedCategory = await newCategory.save();
 
     return {
@@ -40,7 +31,7 @@ export const createCategory = async ({ name, description, image, createdBy }: Cr
         name: savedCategory.name,
         description: savedCategory.description,
         image: savedCategory.image,
-        creatorName: `${findUser.name} ${findUser.surname}`,
+        creatorName: `${user.name} ${user.surname}`,
       },
       statusCode: 201,
     };
@@ -52,20 +43,18 @@ export const createCategory = async ({ name, description, image, createdBy }: Cr
 
 // Update Category fonksiyonu
 interface UpdateCategoryParams {
+  user: IUser;
   categoryId: string;
-  updatedBy: string;
   name?: string;
   description?: string;
   image?: string;
 }
 
-export const updateCategory = async ({ categoryId, updatedBy, name, description, image }: UpdateCategoryParams) => {
+export const updateCategory = async ({ user, categoryId, name, description, image }: UpdateCategoryParams) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(categoryId)) return { data: "Geçersiz kategori ID!", statusCode: 400 };
-    if (!mongoose.Types.ObjectId.isValid(updatedBy)) return { data: "Geçersiz Updater ID!", statusCode: 400 };
 
-
-    if (!categoryId || !updatedBy ) {
+    if (!categoryId) {
       return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
     }
 
@@ -77,11 +66,10 @@ export const updateCategory = async ({ categoryId, updatedBy, name, description,
       if (existingCategory) return { data: "Bu isimde başka bir kategori var!", statusCode: 400 };
     }
 
-    const findUser = await userModel.findById(updatedBy);
-    if (!findUser) return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
-    if (!findUser.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
+    if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
-    const updateFields: Partial<UpdateCategoryParams> = { updatedBy };
+    const updateFields: Partial<UpdateCategoryParams> = {};
+    (updateFields as any).updatedBy = user._id
     if (name && category.name !== name) updateFields.name = name;
     if (description && category.description !== description) updateFields.description = description;
     if (image && category.image !== image) updateFields.image = image;
@@ -91,13 +79,12 @@ export const updateCategory = async ({ categoryId, updatedBy, name, description,
     const updatedCategory = await categoryModel.findByIdAndUpdate(categoryId, { $set: updateFields }, { new: true });
     if (!updatedCategory) return { data: "Kategori güncellenemedi!", statusCode: 500 };
 
-    const updater = await userModel.findById(updatedCategory.updatedBy).select("name surname");
     return {
       data: {
         name: updatedCategory.name,
         description: updatedCategory.description,
         image: updatedCategory.image,
-        updaterName: updater ? `${updater.name} ${updater.surname}` : "Bilinmeyen Kullanıcı",
+        updaterName: `${user.name} ${user.surname}`,
       },
       statusCode: 200,
     };
@@ -109,11 +96,14 @@ export const updateCategory = async ({ categoryId, updatedBy, name, description,
 
 // Delete Category fonksiyonu
 interface DeleteCategoryParams {
+  user: IUser;
   categoryId: string;
 }
 
-export const deleteCategory = async ({ categoryId }: DeleteCategoryParams) => {
+export const deleteCategory = async ({ user, categoryId }: DeleteCategoryParams) => {
   try {
+    if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
+
     if (!mongoose.Types.ObjectId.isValid(categoryId)) return { data: "Geçersiz kategori ID!", statusCode: 400 };
 
     const category = await categoryModel.findById(categoryId);
