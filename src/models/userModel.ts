@@ -1,5 +1,4 @@
-import mongoose, { Schema, ObjectId, Document } from "mongoose";//mongoDB çalışmak için mongoose kullanılır
-import { IProduct } from "./productModel";
+import mongoose, { Schema, ObjectId, Document, Types } from "mongoose";//mongoDB çalışmak için mongoose kullanılır
 
 //Interface TypeScript'in veri tiplerini denetlemesini sağlar. req.body ile aynı olması gerekiyor userRouterdeki gibi
 export interface IUser extends Document {
@@ -11,7 +10,7 @@ export interface IUser extends Document {
     password: string;
     birthdate: Date;
     profileImage: string;
-    favouriteProductIds: IProduct[];
+    favouriteProductIds: Types.ObjectId[];
     paraPuanID: ObjectId | string;
     getEmailNotificationFlag: boolean;
     adminFlag: boolean;

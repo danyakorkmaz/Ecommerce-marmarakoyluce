@@ -1,4 +1,4 @@
-import mongoose, { ObjectId } from "mongoose";
+import mongoose, { ObjectId, Types } from "mongoose";
 import { IUser } from "../models/userModel";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
@@ -106,9 +106,8 @@ export const createProduct = async ({
     if (stockCount !== undefined && stockCount <= 0) {
       return { data: "Stok 0 veya adedi negatif olamaz!", statusCode: 400 };
     }
-
-    brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
     brand = brand.trim();
+    brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
 
     // **6. Yeni Ürünü Kaydet**
     const newProduct = new productModel({
@@ -132,7 +131,7 @@ export const createProduct = async ({
 
     const savedProduct = await newProduct.save();
 
-   const oldBrands = findSubcategory.brands instanceof Map ? Object.fromEntries(findSubcategory.brands) : {};
+    const oldBrands = findSubcategory.brands instanceof Map ? Object.fromEntries(findSubcategory.brands) : {};
 
     // Get existing products array or initialize an empty one
     const existingProducts = (oldBrands[brand] as ObjectId[]) || [];
@@ -144,7 +143,7 @@ export const createProduct = async ({
     findSubcategory.brands = new Map(Object.entries(oldBrands));
 
     await findSubcategory.save();
-   
+
     return {
       data: {
         title: savedProduct.title,
@@ -226,7 +225,7 @@ export const updateProduct = async ({
       return { statusCode: 400, data: { message: "Eksik ürün ID girildi!" } };
     }
     if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
-    
+
     const oldProduct = await productModel.findById(productId.trim());
     if (!oldProduct) {
       return { statusCode: 404, data: { message: "Ürün bulunamadı" } };
@@ -245,8 +244,8 @@ export const updateProduct = async ({
     if (otherImages !== undefined && Array.isArray(otherImages)) updatedData.otherImages = otherImages;
     if (recentlyAddedFlag !== undefined) updatedData.recentlyAddedFlag = recentlyAddedFlag;
     if (brand !== undefined) {
-      brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
       brand = brand.trim();
+      brand = brand.charAt(0).toLocaleUpperCase("tr") + brand.slice(1).toLocaleLowerCase("tr");
       updatedData.brand = brand;
     }
 
@@ -304,7 +303,7 @@ export const updateProduct = async ({
     };
   } catch (error) {
     console.error("Ürün güncelleme hatası:", error);
-    return { statusCode: 500, data: `Ürün güncelleme sırasında hata oluştu! Hata Mesajı: ${error}`};
+    return { statusCode: 500, data: `Ürün güncelleme sırasında hata oluştu! Hata Mesajı: ${error}` };
   }
 };
 
@@ -463,5 +462,114 @@ export const getProductsBySubcategory = async (subcategoryId?: string) => {
     return { data: products, statusCode: 200 };
   } catch (error) {
     return { data: `Ürünler getirilemedi! Hata Mesajı: ${error}`, statusCode: 500 };
+  }
+};
+
+/************************************************************************************* */
+interface FavouriteParams {
+  user: IUser;
+  productId: string;
+}
+
+export const addProductToFavouriteList = async ({ user, productId }: FavouriteParams) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(productId.trim())) return { data: "Geçersiz Ürün ID!", statusCode: 400 };
+
+    if (!productId) {
+      return { statusCode: 400, data: { message: "Eksik ürün ID girildi!" } };
+    }
+
+    const product = await productModel.findById(productId.trim());
+    if (!product) {
+      return { statusCode: 404, data: { message: "Ürün bulunamadı!" } };
+    }
+
+    if (!user.favouriteProductIds.includes(product._id as Types.ObjectId)) {
+      user.favouriteProductIds.push(product._id as Types.ObjectId);
+      await user.save();
+
+      product.favouriteCount += 1;
+      await product.save();
+
+      return { data: "Bu ürün favorilerinize eklendi!", statusCode: 200 };
+
+    } else {
+      return { data: "Bu ürün zaten favorilerinizde!", statusCode: 400 };
+    }
+  } catch (error) {
+    return { data: `Ürün favorilere eklenemedi! Hata Mesajı: ${error}`, statusCode: 500 };
+  }
+};
+
+
+export const deleteProductFromFavouriteList = async ({ user, productId }: FavouriteParams) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(productId.trim())) return { data: "Geçersiz Ürün ID!", statusCode: 400 };
+
+    if (!productId) {
+      return { statusCode: 400, data: { message: "Eksik ürün ID girildi!" } };
+    }
+
+    const product = await productModel.findById(productId.trim());
+    if (!product) {
+      return { statusCode: 404, data: { message: "Ürün bulunamadı!" } };
+    }
+
+    if (user.favouriteProductIds.includes(product._id as Types.ObjectId)) {
+      user.favouriteProductIds = user.favouriteProductIds.filter(item => !item.equals(product._id as Types.ObjectId));
+      await user.save();
+
+      product.favouriteCount -= 1;
+      await product.save();
+
+      return { data: "Bu ürün favorilerinizden çıkarıldı!", statusCode: 200 };
+    } else {
+      return { data: "Bu ürün zaten favorilerinizden değildir!", statusCode: 400 };
+    }
+  } catch (error) {
+    return { data: `Ürün favorilerden silinemedi! Hata Mesajı: ${error}`, statusCode: 500 };
+  }
+};
+
+
+
+export const getFavouriteProducts = async (user: IUser) => {
+  try {
+    let deletedProductsFlag = false;
+    const favouriteProductIds = user.favouriteProductIds.map((id) => id.toString());
+    const favouriteProducts = await productModel
+      .find({ _id: { $in: favouriteProductIds } })
+      .populate("categoryId", "name") // Kategori adını getir
+      .populate("subcategoryId", "name") // Alt kategori adını getir
+      .select("title description image otherImages priceTL discountedPriceTL measureUnit measureValue brand recentlyAddedFlag categoryId subcategoryId _id")
+      .lean();
+
+    if (favouriteProductIds.length !== favouriteProducts.length) {
+      deletedProductsFlag = true;
+    }
+
+    if (deletedProductsFlag) {
+      user.favouriteProductIds = favouriteProducts.map((product: any) => product._id);
+      await user.save();
+    }
+
+    favouriteProducts.forEach((product: any) => {
+      product.categoryName = product.categoryId?.name || "Bilinmeyen Kategori";
+      delete product.categoryId;
+
+      product.subcategoryName = product.subcategoryId?.name || "Bilinmeyen Alt Kategori";
+      delete product.subcategoryId;
+    });
+
+    if (!favouriteProducts.length) {
+      return {
+        data: "Henüz hiçbir ürün favorilere eklenmemiş!",
+        statusCode: 404,
+      };
+    }
+
+    return { data: favouriteProducts, statusCode: 200 };
+  } catch (error) {
+    return { data: `Favori ürünler getirilemedi! Hata Mesajı: ${error}`, statusCode: 500 };
   }
 };

@@ -1,5 +1,5 @@
 import express from "express";
-import { createProduct, deleteProduct, getProductsByCategory, getProductsBySubcategory, updateProduct, } from "../services/productService";
+import { addProductToFavouriteList, createProduct, deleteProduct, deleteProductFromFavouriteList, getFavouriteProducts, getProductsByCategory, getProductsBySubcategory, updateProduct, } from "../services/productService";
 import validateJWT from "../middlewares/validateJWT";
 import { ExtendRequest } from "../types/extendedRequest";
 
@@ -77,11 +77,40 @@ router.get("/list-by-subcategory/:subcategoryId?", async (req, res) => {
    }
 });
 
-//TODO: Add product to favourite (Favourite products are stored in the user model)
+router.post("/add-to-favourite", validateJWT, async (req: ExtendRequest, res) => {
+   try {
+      const user = req?.user;
+      const { productId } = req.body;
+      const { statusCode, data } = await addProductToFavouriteList({ user, productId });
+      res.status(statusCode).send(data);
+   } catch (error) {
+      console.error("Ürün favoriye ekleme hatası:", error);
+      res.status(500).send("Bir hata oluştu!");
+   }
+});
 
-//TODO: delete product from favourite
+router.post("/delete-from-favourite", validateJWT, async (req: ExtendRequest, res) => {
+   try {
+      const user = req?.user;
+      const { productId } = req.body;
+      const { statusCode, data } = await deleteProductFromFavouriteList({ user, productId });
+      res.status(statusCode).send(data);
+   } catch (error) {
+      console.error("Ürün favoriden silme hatası:", error);
+      res.status(500).send("Bir hata oluştu!");
+   }
+});
 
-//TODO: list favourite products
+router.post("/list-favourite", validateJWT, async (req: ExtendRequest, res) => {
+   try {
+      const user = req?.user;
+      const { statusCode, data } = await getFavouriteProducts(user);
+      res.status(statusCode).send(data);
+   } catch (error) {
+      console.error("Ürün favorileri listeleme hatası:", error);
+      res.status(500).send("Bir hata oluştu!");
+   }
+})
 
 export default router;
 
