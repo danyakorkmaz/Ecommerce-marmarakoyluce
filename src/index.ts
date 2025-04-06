@@ -1,14 +1,13 @@
 import express from "express";
-import { connect } from 'mongoose';
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import userRoute from "./routes/userRoute";
+import userRoute from "./routes/userRoute"
 import categoryRoute from "./routes/categoryRoute"
-import cartRoute from "./routes/cartRoute";
 import subcategoryRoute from "./routes/subcategoryRoute";
 import updateRecentlyAddedFlag from "./cronJobs/updateRecentlyAdded"; 
 import productRoute from "./routes/productRoute";
-import addressRoute from "./routes/addressRoute";
+// import addressRoute from "./routes/addressRoute";
+// import cartRoute from "./routes/cartRoute";
 
 
 // import cors from "cors";
@@ -32,12 +31,10 @@ mongoose
 
 app.use('/user', userRoute);
 app.use('/category', categoryRoute);
-app.use('/cart', cartRoute);
 app.use("/subcategories", subcategoryRoute);
-app.use('/cart', cartRoute);
 app.use("/product", productRoute);
-app.use("/address", addressRoute);
-
+// app.use("/address", addressRoute);
+// app.use('/cart', cartRoute);
 
 app.listen(port, () => {
   console.log(`Server is running at :http://localhost:${port}`)
