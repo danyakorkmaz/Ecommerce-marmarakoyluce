@@ -22,9 +22,9 @@ export const createSubcategory = async ({
         if (!name || !categoryId ) {
             return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
         }
-        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+        if (!mongoose.Types.ObjectId.isValid(categoryId.trim())) {
             return {
-                data: "Geçersiz kategoriID . Lütfen Geçerli bir kategoriID yazınız! ",
+                data: "Geçersiz kategoriID. Lütfen Geçerli bir kategoriID yazınız! ",
                 statusCode: 400,
             };
         }
@@ -32,7 +32,7 @@ export const createSubcategory = async ({
         if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
         // categoryId'nin geçerli olup olmadığını kontrol et
-        const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+        const categoryObjectId = new mongoose.Types.ObjectId(categoryId.trim());
         const findCategory = await categoryModel.findById(categoryObjectId);
         if (!findCategory) {
             return { data: "Belirtilen kategori bulunamadı!", statusCode: 404 };
@@ -40,7 +40,7 @@ export const createSubcategory = async ({
 
         // Aynı isimde bir alt kategori var mı?
         const findSubcategory = await subcategoryModel.findOne({
-            name,
+            name: name.trim(),
             categoryId: categoryObjectId,
         });
         if (findSubcategory) {
@@ -48,8 +48,8 @@ export const createSubcategory = async ({
         }
         //Yeni alt kategoriyi oluştur ve ilgili kategoriye ekle
         const newSubcategory = new subcategoryModel({
-            name,
-            description,
+            name: name.trim(),
+            description: description?.trim(),
             categoryId: categoryObjectId,
             updatedBy: user._id,
             createdBy: user._id, 
@@ -91,20 +91,27 @@ export const updateSubcategory = async ({
         if (!subcategoryId ) {
             return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
         }
-        if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+        if (!mongoose.Types.ObjectId.isValid(subcategoryId.trim())) {
             return {
                 data: "Geçersiz alt kategori ID. Lütfen geçerli bir ID yazınız!",
                 statusCode: 400,
             };
         }
 
-        const subcategory = await subcategoryModel.findById(subcategoryId);
+        if (!user.adminFlag) {
+            return {
+                data: "Yetkiniz yok! Sadece adminler kategori güncelleyebilir.",
+                statusCode: 403,
+            };
+        }
+
+        const subcategory = await subcategoryModel.findById(subcategoryId.trim());
         if (!subcategory) {
             return { data: "Alt kategori bulunamadı!", statusCode: 404 };
         }
 
-        if (name && name !== subcategory.name) {
-            const existingSubcategory = await subcategoryModel.findOne({ name });
+        if (name && name.trim() !== subcategory.name) {
+            const existingSubcategory = await subcategoryModel.findOne({ name: name.trim() });
             if (existingSubcategory) {
                 return {
                     data: "Bu isimde başka bir alt kategori zaten var!",
@@ -113,28 +120,21 @@ export const updateSubcategory = async ({
             }
         }
 
-        if (!user.adminFlag) {
-            return {
-                data: "Yetkiniz yok! Sadece adminler kategori ekleyebilir.",
-                statusCode: 403,
-            };
-        }
-
         const updateFields: Partial<UpdateSubcategoryParams> = {};
         (updateFields as any).updatedBy = user._id
 
-        if (name && subcategory.name !== name) {
-            updateFields.name = name;
+        if (name && subcategory.name !== name.trim()) {
+            updateFields.name = name.trim();
         }
-        if (description && subcategory.description !== description) {
-            updateFields.description = description;
+        if (description && subcategory.description !== description.trim()) {
+            updateFields.description = description.trim();
         }
-        if (categoryId && subcategory.categoryId.toString() !== categoryId) {
-            updateFields.categoryId = categoryId;
+        if (categoryId && subcategory.categoryId.toString() !== categoryId.trim()) {
+            updateFields.categoryId = categoryId.trim();
         }
 
         if (Object.keys(updateFields).length === 1) {
-            return { data: " Alt kategorinin hiçbir verisinin güncellenmiş hali girilmedi!", statusCode: 400 };
+            return { data: "Alt kategorinin hiçbir verisinin güncellenmiş hali girilmedi!", statusCode: 400 };
         }
         const updatedSubcategory = await subcategoryModel
             .findByIdAndUpdate(subcategoryId, { $set: updateFields }, { new: true })
@@ -153,7 +153,6 @@ export const updateSubcategory = async ({
                 subcategoryName: updatedSubcategory.name,
                 description: updatedSubcategory.description,
                 updaterName: `${user.name} ${user.surname}`,
-
             },
             statusCode: 200,
         };
@@ -173,25 +172,25 @@ export const deleteSubcategory = async ({ user, subcategoryId }: DeleteSubcatego
         if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
         // Geçerli bir ObjectId mi?**
-        if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+        if (!mongoose.Types.ObjectId.isValid(subcategoryId.trim())) {
             return { data: "Geçersiz alt kategori ID!", statusCode: 400 };
         }
 
         // Alt kategori var mı?**
-        const subcategory = await subcategoryModel.findById(subcategoryId);
+        const subcategory = await subcategoryModel.findById(subcategoryId.trim());
         if (!subcategory) {
             return { data: "Alt kategori bulunamadı!", statusCode: 404 };
         }
 
         // **Bu alt kategoriye bağlı ürün var mı?**
-        const productsInSubcategory = await productModel.find({ subcategoryId });
+        const productsInSubcategory = await productModel.find({ subcategoryId: subcategoryId.trim() });
 
         if (productsInSubcategory.length > 0) {
             return { data: "Bu alt kategoriye bağlı ürünler var, önce onları silmelisiniz!", statusCode: 400 };
         }
 
         // **Alt kategoriyi sil**
-        const deletedSubcategory = await subcategoryModel.findByIdAndDelete(subcategoryId);
+        const deletedSubcategory = await subcategoryModel.findByIdAndDelete(subcategoryId.trim());
 
         if (!deletedSubcategory) {
             return { data: "Alt kategori silinemedi!", statusCode: 500 };
@@ -209,14 +208,14 @@ export const deleteSubcategory = async ({ user, subcategoryId }: DeleteSubcatego
 export const getAllSubcategories = async (categoryId?: string) => {
     try {
         // categoryId varsa filtre uygula, yoksa tümünü getir
-        const filter = categoryId ? { categoryId } : {}; 
+        const filter = categoryId ? { categoryId: categoryId.trim() } : {}; 
 
         if (categoryId) {
-            if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            if (!mongoose.Types.ObjectId.isValid(categoryId.trim())) {
                 return { data: "Geçersiz categoryId!", statusCode: 400 };
             }
 
-            const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+            const categoryObjectId = new mongoose.Types.ObjectId(categoryId.trim());
             const findCategory = await categoryModel.findById(categoryObjectId);
             if (!findCategory) {
                 return { data: "Belirtilen kategori bulunamadı!", statusCode: 404 };

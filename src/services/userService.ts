@@ -26,27 +26,27 @@ export const register = async ({ //frontendden gelen veriler ancak hala veritaba
   getEmailNotificationFlag,
   adminFlag
 }: RegisterParams) => {
-  const findUser = await userModel.findOne({ email });
+  const findUser = await userModel.findOne({ email: email.trim() });
 
   if (findUser) {
-    return { data: " BU Kullanıcı zaten var!", statusCode: 400 };
+    return { data: "Bu e-posta adresine sahip bir kullanıcı zaten var!", statusCode: 400 };
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password.trim(), 10);
   
   const newUser = new userModel({
-    name,
-    surname,
-    email,
+    name: name.trim(),
+    surname: surname.trim(),
+    email: email.trim(),
     password: hashedPassword,
-    gender,
+    gender: gender.trim(),
     getEmailNotificationFlag,
     adminFlag,
   });
   
   await newUser.save();
 
-  return { data: generateJWT({email, name, surname}), statusCode: 200 };
+  return { data: generateJWT({email: email.trim(), name: name.trim(), surname: surname.trim()}), statusCode: 200 };
 };
 
 //****************************************************************************** */
@@ -57,15 +57,15 @@ interface LoginParams {
 }
 
 export const login = async ({ email, password }: LoginParams) => {
-  const findUser = await userModel.findOne({ email });
+  const findUser = await userModel.findOne({ email: email.trim() });
 
   if (!findUser) {
     return { data: "E-posta veya şifre hatalıdır! lütfen tekrar deneyin..", statusCode: 400 };
   }
 
-  const passwordMatch = await bcrypt.compare(password, findUser.password); //password === findUser.password;
+  const passwordMatch = await bcrypt.compare(password.trim(), findUser.password); //password === findUser.password;
   if (passwordMatch) {
-    return { data: generateJWT({email, name: findUser.name, surname: findUser.surname}), statusCode: 200};
+    return { data: generateJWT({email: email.trim(), name: findUser.name.trim(), surname: findUser.surname.trim()}), statusCode: 200};
   }
   return { data: "E-posta veya şifre hatalıdır! lütfen tekrar deneyin..", statusCode: 400 };
 };
@@ -84,8 +84,8 @@ export const updateinfo = async ({user, name, surname, birthdate, getEmailNotifi
   
   // Güncellenecek alanları belirle
   const updateFields: Partial<UpdateinfoParams> = {};
-  if (name) updateFields.name = name;
-  if (surname) updateFields.surname = surname;
+  if (name) updateFields.name = name.trim();
+  if (surname) updateFields.surname = surname.trim();
   if (birthdate) updateFields.birthdate = birthdate;
   if (getEmailNotificationFlag) updateFields.getEmailNotificationFlag = getEmailNotificationFlag;
 

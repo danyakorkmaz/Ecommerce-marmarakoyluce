@@ -20,10 +20,10 @@ export const createCategory = async ({ user, name, description, image }: CreateC
     }
     if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
-    const findCategory = await categoryModel.findOne({ name });
+    const findCategory = await categoryModel.findOne({ name: name.trim() });
     if (findCategory) return { data: "Bu kategori zaten mevcut!", statusCode: 400 };
 
-    const newCategory = new categoryModel({ name, description, image, createdBy: user._id, updatedBy: user._id });
+    const newCategory = new categoryModel({ name: name.trim(), description: description?.trim(), image: image.trim(), createdBy: user._id, updatedBy: user._id });
     const savedCategory = await newCategory.save();
 
     return {
@@ -37,7 +37,7 @@ export const createCategory = async ({ user, name, description, image }: CreateC
     };
   } catch (error) {
     console.error("Kategori oluşturma hatası:", error);
-    return { data: "Kategori oluşturulamadı!", statusCode: 500 };
+    return { data: `Kategori oluşturulamadı! Hata mesajı: ${error}`, statusCode: 500 };
   }
 };
 
@@ -60,11 +60,11 @@ export const updateCategory = async ({ user, categoryId, name, description, imag
       return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
     }
 
-    const category = await categoryModel.findById(categoryId);
+    const category = await categoryModel.findById(categoryId.trim());
     if (!category) return { data: "Kategori bulunamadı!", statusCode: 404 };
 
     if (name && name !== category.name) {
-      const existingCategory = await categoryModel.findOne({ name });
+      const existingCategory = await categoryModel.findOne({ name: name.trim() });
       if (existingCategory) return { data: "Bu isimde başka bir kategori var!", statusCode: 400 };
     }
 
@@ -72,9 +72,9 @@ export const updateCategory = async ({ user, categoryId, name, description, imag
 
     const updateFields: Partial<UpdateCategoryParams> = {};
     (updateFields as any).updatedBy = user._id
-    if (name && category.name !== name) updateFields.name = name;
-    if (description && category.description !== description) updateFields.description = description;
-    if (image && category.image !== image) updateFields.image = image;
+    if (name && category.name !== name) updateFields.name = name.trim();
+    if (description && category.description !== description) updateFields.description = description.trim();
+    if (image && category.image !== image) updateFields.image = image.trim();
 
     if (Object.keys(updateFields).length == 1) return { data: "Güncellenmiş veri girilmedi!", statusCode: 400 };
 
@@ -92,7 +92,7 @@ export const updateCategory = async ({ user, categoryId, name, description, imag
     };
   } catch (error) {
     console.error("Kategori güncelleme hatası:", error);
-    return { data: "Kategori güncellenemedi!", statusCode: 500 };
+    return { data: `Kategori güncellenemedi! Hata mesajı: ${error}`, statusCode: 500 };
   }
 };
 
@@ -108,25 +108,25 @@ export const deleteCategory = async ({ user, categoryId }: DeleteCategoryParams)
   try {
     if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) return { data: "Geçersiz kategori ID!", statusCode: 400 };
+    if (!mongoose.Types.ObjectId.isValid(categoryId.trim())) return { data: "Geçersiz kategori ID!", statusCode: 400 };
 
-    const category = await categoryModel.findById(categoryId);
+    const category = await categoryModel.findById(categoryId.trim());
     if (!category) return { data: "Kategori bulunamadı!", statusCode: 404 };
 
-    const subcategories = await subcategoryModel.find({ categoryId });
+    const subcategories = await subcategoryModel.find({ categoryId: categoryId.trim() });
     const subcategoryIds = subcategories.map(sub => sub._id);
 
     const productsInSubcategories = await productModel.find({ subcategoryId: { $in: subcategoryIds } });
     if (productsInSubcategories.length > 0) return { data: "Bağlı ürünler var, önce onları silmelisiniz!", statusCode: 400 };
 
     await subcategoryModel.deleteMany({ categoryId });
-    const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+    const deletedCategory = await categoryModel.findByIdAndDelete(categoryId.trim());
     if (!deletedCategory) return { data: "Kategori silinemedi!", statusCode: 500 };
 
     return { data: "Kategori ve boş alt kategoriler silindi!", statusCode: 200 };
   } catch (error) {
     console.error("Kategori silme hatası:", error);
-    return { data: "Kategori silinirken hata oluştu!", statusCode: 500 };
+    return { data: `Kategori silinirken hata oluştu! Hata mesajı: ${error}`, statusCode: 500 };
   }
 };
 
@@ -139,6 +139,6 @@ export const getAllCategories = async () => {
     if (!categories.length) return { data: "Henüz kategori eklenmemiş!", statusCode: 404 };
     return { data: categories, statusCode: 200 };
   } catch (error) {
-    return { data: "Kategoriler getirilemedi!", statusCode: 500 };
+    return { data: `Kategoriler getirilemedi! Hata mesajı: ${error}`, statusCode: 500 };
   }
 };
