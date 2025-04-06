@@ -1,24 +1,25 @@
 import mongoose from "mongoose";
-import userModel from "../models/userModel";
+import userModel, { IUser } from "../models/userModel";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
 import productModel from "../models/productModel";
 
 interface CreateSubcategoryParams {
+    user: IUser;
     name: string;
     description?: string;
     categoryId: string; // String olarak alınacak, ObjectId'ye çevrilecek
-    createdBy: string;
 }
+
 export const createSubcategory = async ({
+    user,
     name,
     description,
     categoryId,
-    createdBy,
 }: CreateSubcategoryParams) => {
     try {
         //  Eksik Alan Kontrolleri**
-        if (!name || !categoryId || !createdBy) {
+        if (!name || !categoryId ) {
             return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
         }
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
@@ -27,27 +28,8 @@ export const createSubcategory = async ({
                 statusCode: 400,
             };
         }
-        if (!mongoose.Types.ObjectId.isValid(createdBy)) {
-            return {
-                data: "Geçersiz creatorID. Lütfen geçerli bir creatorID yazınız!",
-                statusCode: 400,
-            };
-        }
-
-        // creator ID'sini ObjectId'ye çevir
-        const creatorObjectId = new mongoose.Types.ObjectId(createdBy);
-
-        // Kullanıcı kontrolü
-        const findUser = await userModel.findById(creatorObjectId);
-        if (!findUser) {
-            return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
-        }
-        if (!findUser.adminFlag) {
-            return {
-                data: "Yetkiniz yok! Sadece adminler alt kategori ekleyebilir.",
-                statusCode: 403,
-            };
-        }
+     
+        if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
 
         // categoryId'nin geçerli olup olmadığını kontrol et
         const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
@@ -64,28 +46,23 @@ export const createSubcategory = async ({
         if (findSubcategory) {
             return { data: "Bu alt kategori zaten mevcut!", statusCode: 400 };
         }
-
         //Yeni alt kategoriyi oluştur ve ilgili kategoriye ekle
         const newSubcategory = new subcategoryModel({
             name,
             description,
             categoryId: categoryObjectId,
-            createdBy: creatorObjectId,
-            updatedBy: creatorObjectId,
+            updatedBy: user._id,
+            createdBy: user._id, 
         });
-
         const savedSubcategory = await newSubcategory.save();
-
-
+    
         const responseData = {
             name: savedSubcategory.name,
             description: savedSubcategory.description,
             categoryName: findCategory.name, // Kategori adı
             brands: savedSubcategory.brands,
-            createdBy: {
-                name: `${findUser.name} ${findUser.surname}`, // Kullanıcının adı eklendi
-            },
-        };
+            creatorName: `${user.name} ${user.surname}`, // Kullanıcının adı eklendi
+        }; 
         return { data: responseData, statusCode: 201 };
     } catch (error) {
         return { data: `Alt kategori oluşturulamadı! Hata Mesajı: ${error}`, statusCode: 500 };
@@ -96,22 +73,22 @@ export const createSubcategory = async ({
 //update subcategory fonksiyon
 
 interface UpdateSubcategoryParams {
+    user: IUser;
     subcategoryId: string;
-    updatedBy: string;
     name?: string;
     description?: string;
     categoryId?: string;
 }
 
 export const updateSubcategory = async ({
+    user,
     subcategoryId,
-    updatedBy,
     name,
     description,
     categoryId,
 }: UpdateSubcategoryParams) => {
     try {
-        if (!subcategoryId || !updatedBy) {
+        if (!subcategoryId ) {
             return { data: "Lütfen tüm zorunlu alanları eksiksiz doldurun!", statusCode: 400 };
         }
         if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
@@ -136,21 +113,7 @@ export const updateSubcategory = async ({
             }
         }
 
-        if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
-            return {
-                data: "Updater ID girilmedi veya geçersiz Updater ID. Lütfen geçerli bir Updater ID yazınız!",
-                statusCode: 400,
-            };
-        }
-
-        // Kullanıcının var olup olmadığını kontrol et
-        const findUser = await userModel.findById(updatedBy);
-
-        if (!findUser) {
-            return { data: "Kullanıcı bulunamadı!", statusCode: 404 };
-        }
-
-        if (!findUser.adminFlag) {
+        if (!user.adminFlag) {
             return {
                 data: "Yetkiniz yok! Sadece adminler kategori ekleyebilir.",
                 statusCode: 403,
@@ -158,7 +121,7 @@ export const updateSubcategory = async ({
         }
 
         const updateFields: Partial<UpdateSubcategoryParams> = {};
-        updateFields.updatedBy = updatedBy;
+        (updateFields as any).updatedBy = user._id
 
         if (name && subcategory.name !== name) {
             updateFields.name = name;
@@ -184,15 +147,12 @@ export const updateSubcategory = async ({
         // Kategori adını almak için categoryId'yi kullan
         const category = await categoryModel.findById(updatedSubcategory.categoryId).select("name");
 
-        // Kullanıcı adını almak için creator ID'yi kullan
-        const updater = await userModel.findById(updatedSubcategory.updatedBy).select("name surname");
-
         return {
             data: {
                 categoryName: category ? category.name : "Kategori bulunamadı",
                 subcategoryName: updatedSubcategory.name,
                 description: updatedSubcategory.description,
-                updaterName: updater ? `${updater.name} ${updater.surname}` : "Güncelleyen kişi bulunamadı",
+                updaterName: `${user.name} ${user.surname}`,
 
             },
             statusCode: 200,
@@ -204,11 +164,14 @@ export const updateSubcategory = async ({
 };
 /************************************************************************************* */
 interface DeleteSubcategoryParams {
+    user: IUser;
     subcategoryId: string;
 }
 
-export const deleteSubcategory = async ({ subcategoryId }: DeleteSubcategoryParams) => {
+export const deleteSubcategory = async ({ user, subcategoryId }: DeleteSubcategoryParams) => {
     try {
+        if (!user.adminFlag) return { data: "Yetkiniz yok!", statusCode: 403 };
+
         // Geçerli bir ObjectId mi?**
         if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
             return { data: "Geçersiz alt kategori ID!", statusCode: 400 };
@@ -243,54 +206,59 @@ export const deleteSubcategory = async ({ subcategoryId }: DeleteSubcategoryPara
 
 /************************************************************************************* */
 
-
-//list all category fonksiyon
 export const getAllSubcategories = async (categoryId?: string) => {
     try {
-        const filter = categoryId ? { categoryId } : {}; // categoryId varsa filtre uygula, yoksa tümünü getir
+        // categoryId varsa filtre uygula, yoksa tümünü getir
+        const filter = categoryId ? { categoryId } : {}; 
 
-        if (categoryId && !mongoose.Types.ObjectId.isValid(categoryId)) {
-            return { data: "Geçersiz categoryId!", statusCode: 400 };
-        }
+        if (categoryId) {
+            if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+                return { data: "Geçersiz categoryId!", statusCode: 400 };
+            }
 
-        const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
-        const findCategory = await categoryModel.findById(categoryObjectId);
-        if (!findCategory) {
-            return { data: "Belirtilen kategori bulunamadı!", statusCode: 404 };
+            const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
+            const findCategory = await categoryModel.findById(categoryObjectId);
+            if (!findCategory) {
+                return { data: "Belirtilen kategori bulunamadı!", statusCode: 404 };
+            }
         }
 
         const subcategories = await subcategoryModel
             .find(filter)
             .populate("categoryId", "name") // Kategori adını getir
-            .populate("createdBy", "name surname")
-            .select("name brands createdBy categoryId -_id")
+            .populate("createdBy", "name surname") // createdBy bilgisini alıp creatorName'e çevireceğiz
+            .select("name brands categoryId -_id") // createdBy'yi sorgudan tamamen çıkar
             .lean();
 
-        // categoryId'yi category olarak yeniden adlandır
+        if (!subcategories.length) {
+            if (categoryId) {
+                return {
+                    data: "Bu kategoriye ait alt kategori bulunamadı!",
+                    statusCode: 404,
+                };   
+            } else {
+                return {
+                    data: "Alt kategori bulunamadı!",
+                    statusCode: 404,
+                };    
+            }
+        }
+
+        // categoryId'yi category olarak yeniden adlandır, creatorName ekle
         subcategories.forEach((subcategory: any) => {
             if (subcategory.categoryId) {
                 subcategory.category = subcategory.categoryId.name;
                 delete subcategory.categoryId;
             }
             if (subcategory.createdBy) {
-                subcategory.createdBy = `${subcategory.createdBy.name} ${subcategory.createdBy.surname}`;
+                subcategory.creatorName = `${subcategory.createdBy.name} ${subcategory.createdBy.surname}`;
+                delete subcategory.createdBy; // createdBy bilgisini tamamen kaldır
             }
             subcategory.brands = Object.keys(subcategory.brands);
         });
-
-        if (!subcategories.length) {
-            return {
-                data: "Bu kategoriye ait alt kategori bulunamadı!",
-                statusCode: 404,
-            };
-        }
 
         return { data: subcategories, statusCode: 200 };
     } catch (error) {
         return { data: `Alt kategoriler getirilemedi! Hata Mesajı: ${error}`, statusCode: 500 };
     }
 };
-
-
-
-

@@ -1,4 +1,4 @@
-import mongoose, { ObjectId } from "mongoose";
+import mongoose from "mongoose";
 import categoryModel from "../models/categoryModel";
 import subcategoryModel from "../models/subcategoryModel";
 import { IUser } from "../models/userModel"; // Kullanıcı modelini içe aktar
@@ -40,6 +40,8 @@ export const createCategory = async ({ user, name, description, image }: CreateC
     return { data: "Kategori oluşturulamadı!", statusCode: 500 };
   }
 };
+
+/************************************************************************************* */
 
 // Update Category fonksiyonu
 interface UpdateCategoryParams {
@@ -94,6 +96,8 @@ export const updateCategory = async ({ user, categoryId, name, description, imag
   }
 };
 
+/************************************************************************************* */
+
 // Delete Category fonksiyonu
 interface DeleteCategoryParams {
   user: IUser;
@@ -125,6 +129,8 @@ export const deleteCategory = async ({ user, categoryId }: DeleteCategoryParams)
     return { data: "Kategori silinirken hata oluştu!", statusCode: 500 };
   }
 };
+
+/************************************************************************************* */
 
 // List All Categories fonksiyonu
 export const getAllCategories = async () => {
